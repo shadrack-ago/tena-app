@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { GROK_PROVIDERS, authClient, authEnabled, signIn } from "@/lib/auth/client";
+import { SOCIAL_PROVIDERS, authClient, authEnabled, signIn } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +16,7 @@ async function emailAuth(
   kind: "up" | "in",
   payload: { email: string; password: string; name?: string },
 ) {
-  const path =
-    kind === "up" ? "/api/auth/sign-up/email" : "/api/auth/sign-in/email";
+  const path = kind === "up" ? "/api/auth/sign-up/email" : "/api/auth/sign-in/email";
   const res = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -146,34 +145,40 @@ function Login() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "in"
-              ? "Use email or continue with Google or X."
+              ? SOCIAL_PROVIDERS.length
+                ? "Use email or continue with Google."
+                : "Sign in with your email and password."
               : "Email and a password. A Nairobi boutique is waiting inside."}
           </p>
 
           {authEnabled ? (
             <>
-              <div className="mt-6 grid gap-2">
-                {GROK_PROVIDERS.map((p) => (
-                  <Button
-                    key={p.providerId}
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    disabled={busy}
-                    onClick={() => {
-                      if (invite.trim()) sessionStorage.setItem("tena-invite", invite.trim());
-                      signIn(p.providerId, { callbackURL: "/app" });
-                    }}
-                  >
-                    Continue with {p.label}
-                  </Button>
-                ))}
-              </div>
-              <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="h-px flex-1 bg-border" />
-                or email
-                <span className="h-px flex-1 bg-border" />
-              </div>
+              {SOCIAL_PROVIDERS.length > 0 && (
+                <>
+                  <div className="mt-6 grid gap-2">
+                    {SOCIAL_PROVIDERS.map((p) => (
+                      <Button
+                        key={p.providerId}
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        disabled={busy}
+                        onClick={() => {
+                          if (invite.trim()) sessionStorage.setItem("tena-invite", invite.trim());
+                          signIn(p.providerId, { callbackURL: "/app" });
+                        }}
+                      >
+                        Continue with {p.label}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="h-px flex-1 bg-border" />
+                    or email
+                    <span className="h-px flex-1 bg-border" />
+                  </div>
+                </>
+              )}
               <form
                 onSubmit={submit}
                 method="post"
@@ -250,7 +255,13 @@ function Pattern() {
     <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <pattern id="k" width="48" height="48" patternUnits="userSpaceOnUse">
-          <path d="M24 2 L46 24 L24 46 L2 24 Z" fill="none" stroke="#0d5c59" strokeWidth="0.6" opacity="0.25" />
+          <path
+            d="M24 2 L46 24 L24 46 L2 24 Z"
+            fill="none"
+            stroke="#0d5c59"
+            strokeWidth="0.6"
+            opacity="0.25"
+          />
         </pattern>
       </defs>
       <rect width="100%" height="100%" fill="url(#k)" />

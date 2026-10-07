@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, formatDistanceToNowStrict } from "date-fns";
 import { toast } from "sonner";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -81,7 +81,7 @@ function Ops() {
     return (
       <main className="mx-auto grid min-h-dvh max-w-md place-items-center px-5">
         <div className="text-center">
-          <p className="font-display text-2xl font-semibold">Ops is claimed</p>
+          <p className="font-display text-2xl font-semibold">Admins only</p>
           <p className="mt-2 text-sm text-muted-foreground">
             This login is a shop, not Tena HQ. Open Shop for your boutique.
           </p>
@@ -98,9 +98,9 @@ function Ops() {
       <main className="mx-auto grid min-h-dvh max-w-md place-items-center px-5">
         <div className="text-center">
           <p className="text-sm font-medium text-primary">Tena</p>
-          <h1 className="mt-2 font-display text-3xl font-semibold">Claim ops</h1>
+          <h1 className="mt-2 font-display text-3xl font-semibold">Open Tena HQ</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            First person to claim sees every shop, every subscription, and every support thread. Use the email you run Tena with — not a boutique login.
+            This email is on the admin list. Admins see every shop, subscription and support thread.
           </p>
           <Button className="mt-6" onClick={() => claimMut.mutate()} disabled={claimMut.isPending}>
             {claimMut.isPending ? "Claiming…" : "This is my Tena"}
@@ -130,8 +130,28 @@ function Ops() {
         </div>
       </header>
       <main className="mx-auto max-w-5xl space-y-10 px-4 py-8 md:px-8">
-        {board.isError && (
-          <p className="text-sm text-destructive">Could not load shops.</p>
+        {board.isError && <p className="text-sm text-destructive">Could not load shops.</p>}
+
+        {d && (
+          <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {[
+              {
+                label: "Businesses",
+                value: d.shops.filter((s) => !s.seeded).length || d.shops.length,
+              },
+              { label: "Paying", value: d.shops.filter((s) => s.access === "active").length },
+              { label: "On trial", value: d.shops.filter((s) => s.access === "trial").length },
+              {
+                label: "Sales logged · 30d",
+                value: `Ksh ${d.shops.reduce((n, s) => n + s.sales30dKes, 0).toLocaleString()}`,
+              },
+            ].map((t) => (
+              <div key={t.label} className="rounded-xl border border-border bg-card px-4 py-3">
+                <p className="text-xs text-muted-foreground">{t.label}</p>
+                <p className="mt-1 font-display text-2xl font-semibold tabular-nums">{t.value}</p>
+              </div>
+            ))}
+          </section>
         )}
 
         <section>
@@ -140,7 +160,7 @@ function Ops() {
             Trial, paid, or locked. One row per shop.
           </p>
           <div className="mt-4 overflow-x-auto rounded-xl border border-border bg-card">
-            <table className="w-full min-w-[40rem] text-left text-sm">
+            <table className="w-full min-w-[60rem] text-left text-sm">
               <thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-medium">Shop</th>
@@ -148,6 +168,10 @@ function Ops() {
                   <th className="px-4 py-3 font-medium">Plan</th>
                   <th className="px-4 py-3 font-medium">People</th>
                   <th className="px-4 py-3 font-medium">Staff</th>
+                  <th className="px-4 py-3 font-medium">Sales · 30d</th>
+                  <th className="px-4 py-3 font-medium">Sent · 30d</th>
+                  <th className="px-4 py-3 font-medium">Overdue</th>
+                  <th className="px-4 py-3 font-medium">Last active</th>
                 </tr>
               </thead>
               <tbody>
@@ -160,6 +184,9 @@ function Ops() {
                         {s.ownerName ? ` · ${s.ownerName}` : ""}
                         {s.seeded ? " · sample" : ""}
                       </p>
+                      {s.ownerEmail && (
+                        <p className="text-xs text-muted-foreground">{s.ownerEmail}</p>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <Badge
@@ -174,11 +201,27 @@ function Ops() {
                         {s.access}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {s.plan ?? "—"}
-                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{s.plan ?? "—"}</td>
                     <td className="px-4 py-3 tabular-nums">{s.people}</td>
                     <td className="px-4 py-3 tabular-nums">{s.staff}</td>
+                    <td className="px-4 py-3 tabular-nums">
+                      Ksh {s.sales30dKes.toLocaleString()}
+                      <span className="block text-xs text-muted-foreground">
+                        {s.sales30d} sale{s.sales30d === 1 ? "" : "s"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 tabular-nums">{s.sent30d}</td>
+                    <td className="px-4 py-3 tabular-nums">
+                      {s.dueNow > 0 ? <Badge variant="warn">{s.dueNow}</Badge> : "0"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {s.lastActive
+                        ? `${formatDistanceToNowStrict(new Date(s.lastActive))} ago`
+                        : "—"}
+                      <span className="block text-xs">
+                        Joined {format(new Date(s.createdAt), "d MMM yyyy")}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -266,9 +309,7 @@ function Ops() {
                       <span className="font-medium">{t.subject}</span>
                       <span className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">{t.shopName}</span>
-                        <Badge variant={t.status === "open" ? "warn" : "default"}>
-                          {t.status}
-                        </Badge>
+                        <Badge variant={t.status === "open" ? "warn" : "default"}>{t.status}</Badge>
                       </span>
                     </span>
                     {t.lastBody ? (

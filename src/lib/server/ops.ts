@@ -10,6 +10,18 @@ async function requireAdmin(sql: Awaited<ReturnType<typeof getSql>>, userId: str
   if (!rows[0]) throw new Error("Not a Tena admin.");
 }
 
+/** Emails allowed to claim Tena ops — comma-separated `TENA_ADMIN_EMAILS`. */
+function adminEmails(): string[] {
+  return (process.env.TENA_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function mayClaim(email: string | null) {
+  return Boolean(email && adminEmails().includes(email.toLowerCase()));
+}
+
 async function userLabel(sql: Awaited<ReturnType<typeof getSql>>, userId: string) {
   const rows = await sql<{ name: string; email: string }>`
     select name, email from "user" where id = ${userId} limit 1
@@ -24,14 +36,13 @@ export const getOpsSession = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
-    const admins = await sql<{ n: number }>`select count(*)::int as n from platform_admins`;
     const me = await sql<{ user_id: string }>`
       select user_id from platform_admins where user_id = ${context.userId} limit 1
     `;
     const who = await userLabel(sql, context.userId);
     return {
       isAdmin: Boolean(me[0]),
-      canClaim: (admins[0]?.n ?? 0) === 0,
+      canClaim: !me[0] && mayClaim(who.email),
       name: who.name,
       email: who.email,
     };
@@ -41,12 +52,12 @@ export const claimOps = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
-    const admins = await sql<{ n: number }>`select count(*)::int as n from platform_admins`;
-    if ((admins[0]?.n ?? 0) > 0) throw new Error("Ops already has an owner.");
     const who = await userLabel(sql, context.userId);
+    if (!mayClaim(who.email)) throw new Error("This email is not a Tena admin.");
     await sql`
       insert into platform_admins (user_id, email, name)
       values (${context.userId}, ${who.email}, ${who.name})
+      on conflict (user_id) do nothing
     `;
     return { ok: true as const };
   });
@@ -68,13 +79,31 @@ export const getOpsBoard = createServerFn({ method: "GET" })
       current_period_end: string | null;
       people: number;
       staff: number;
+      owner_email: string | null;
+      created_at: string;
+      sales_30d_kes: number;
+      sales_30d: number;
+      sent_30d: number;
+      due_now: number;
+      last_active: string | null;
     }>`
-      select s.id, s.name, s.city, s.owner_name, s.seeded, s.trial_ends_at,
+      select s.id, s.name, s.city, s.owner_name, s.seeded, s.trial_ends_at, s.created_at,
              sub.plan, sub.status as sub_status, sub.current_period_end,
+             u.email as owner_email,
              coalesce((select count(*) from customers c where c.user_id = s.user_id), 0)::int as people,
-             coalesce((select count(*) from shop_members m where m.shop_id = s.id and m.status = 'active'), 0)::int as staff
+             coalesce((select count(*) from shop_members m where m.shop_id = s.id and m.status = 'active'), 0)::int as staff,
+             coalesce((select sum(x.amount_kes) from sales x where x.user_id = s.user_id and x.sold_at > now() - interval '30 days'), 0)::int as sales_30d_kes,
+             coalesce((select count(*) from sales x where x.user_id = s.user_id and x.sold_at > now() - interval '30 days'), 0)::int as sales_30d,
+             coalesce((select count(*) from messages m where m.user_id = s.user_id and m.direction = 'out' and m.sent_at > now() - interval '30 days'), 0)::int as sent_30d,
+             coalesce((select count(*) from follow_ups f where f.user_id = s.user_id and f.status = 'due' and f.due_at <= now()), 0)::int as due_now,
+             greatest(
+               (select max(x.sold_at) from sales x where x.user_id = s.user_id),
+               (select max(m.sent_at) from messages m where m.user_id = s.user_id and m.direction = 'out'),
+               (select max(c.created_at) from customers c where c.user_id = s.user_id)
+             ) as last_active
       from shops s
       left join subscriptions sub on sub.shop_id = s.id
+      left join "user" u on u.id = s.user_id
       order by s.id desc
     `;
     const tickets = await sql<{
@@ -112,6 +141,13 @@ export const getOpsBoard = createServerFn({ method: "GET" })
           trialEndsAt: s.trial_ends_at,
           people: s.people,
           staff: s.staff,
+          ownerEmail: s.owner_email,
+          createdAt: s.created_at,
+          sales30dKes: s.sales_30d_kes,
+          sales30d: s.sales_30d,
+          sent30d: s.sent_30d,
+          dueNow: s.due_now,
+          lastActive: s.last_active,
         };
       }),
       tickets: tickets.map((t) => ({
