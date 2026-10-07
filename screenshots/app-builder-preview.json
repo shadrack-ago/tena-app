@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Tena",
+      "hasCanvas": false,
+      "bodyTextLen": 2019,
+      "bodyTextHash": "782075fdc84e4c8706912d93975b29aa406f639371ef99915707029b28d4cda8",
+      "bodyTextPrefix": "Tena Playbook Open your shop For Kenyan retail shops Never lose ",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Tena",
+      "hasCanvas": false,
+      "bodyTextLen": 2010,
+      "bodyTextHash": "408e80a4062a2be429288ecb7a55b09324fe5dc43929b7407c960972f52aa5d2",
+      "bodyTextPrefix": "Tena Open your shop For Kenyan retail shops Never lose a custome",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}

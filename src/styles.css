@@ -1,0 +1,109 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --color-background: #f3eee6;
+  --color-foreground: #1c1915;
+  --color-card: #fffdf9;
+  --color-card-foreground: #1c1915;
+  --color-popover: #fffdf9;
+  --color-popover-foreground: #1c1915;
+  --color-primary: #0d5c59;
+  --color-primary-foreground: #f4f0ea;
+  --color-secondary: #ebe4d8;
+  --color-secondary-foreground: #1c1915;
+  --color-muted: #ebe4d8;
+  --color-muted-foreground: #6b645b;
+  --color-accent: #dceae8;
+  --color-accent-foreground: #0d5c59;
+  --color-destructive: #9b3a2f;
+  --color-destructive-foreground: #faf7f2;
+  --color-border: #e4dcd0;
+  --color-input: #e4dcd0;
+  --color-ring: #0d5c59;
+  --color-success: #2f6b45;
+  --color-warn: #9a6b2f;
+  --color-chat-out: #d7efe8;
+  --color-chat-in: #fffdf9;
+  --color-ink: #1c1915;
+  --color-paper: #f3eee6;
+  --color-teal: #0d5c59;
+  --color-teal-deep: #0a4c4a;
+
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.125rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --radius: 0.75rem;
+
+  --shadow-soft: 0 1px 2px rgb(28 25 21 / 0.04), 0 8px 24px rgb(28 25 21 / 0.06);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    font-family: var(--font-display);
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  article ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  article ol {
+    list-style: decimal;
+    padding-left: 1.25rem;
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  article li {
+    line-height: 1.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
