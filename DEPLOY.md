@@ -35,6 +35,9 @@ Use `.env.example` as the checklist. Required for production:
 Optional: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `VITE_GOOGLE_AUTH_ENABLED=true`
 (redirect URI `<BETTER_AUTH_URL>/api/auth/callback/google`), `VITE_GROK_EXTENSIONS=0`.
 
+If the site answers on more than one address (e.g. `tena.co.ke` and
+`www.tena.co.ke`), list the extras in `TENA_TRUSTED_ORIGINS`, comma-separated.
+
 Then **Deploy**. After the first deploy, if you change `BETTER_AUTH_URL` or add a
 custom domain, redeploy so sign-in uses the new address.
 
@@ -49,3 +52,13 @@ custom domain, redeploy so sign-in uses the new address.
   templates). Tena's sign-in runs inside the app, not on Supabase Auth.
 - Supabase's REST API is locked for Tena's tables (row-level security, see
   `migrations/0005_supabase_rls.sql`); new tables must enable RLS too.
+
+## Troubleshooting
+- **"Invalid origin" when signing in:** the address in the browser isn't one
+  Tena trusts. Check `BETTER_AUTH_URL` is the exact address you open (with
+  `https://`), not `http://localhost:8080` copied from your local `.env`. Add
+  any other address you use to `TENA_TRUSTED_ORIGINS`, then redeploy;
+  environment variable changes only apply to new deployments.
+- **"Invalid email or password" with an account that works locally:** the
+  deployment's `DATABASE_URL` points to a different database than your local
+  `.env`.

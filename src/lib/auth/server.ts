@@ -20,7 +20,7 @@ import { Pool } from "pg";
 import { ensureDbReady, getPglite } from "../db";
 import { emailAndPasswordEnabled } from "./email-password";
 import { passwordResetEmail, sendEmail } from "../server/email";
-import { PG_POOL_MAX, vercelDeploymentOrigins } from "../server/app-url";
+import { PG_POOL_MAX, configuredAppUrl, deploymentOrigins } from "../server/app-url";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { pgliteDialect } from "./pglite-dialect";
 import { PREVIEW_ALLOWED_HOSTS } from "./preview";
@@ -67,11 +67,9 @@ export const authConfigured = !authDisabled;
 // it derives the origin per-request from the (proxied) host, validated against the
 // preview allowlist, which makes the OAuth `redirect_uri` the concrete preview URL
 // the broker's preview client accepts.
-const explicitBaseURL =
-  env("BETTER_AUTH_URL") ??
-  (env("VERCEL_PROJECT_PRODUCTION_URL")
-    ? `https://${env("VERCEL_PROJECT_PRODUCTION_URL")}`
-    : undefined);
+// Normalised (see app-url.ts): trailing slashes / missing https:// are fixed,
+// and a localhost value is ignored on Vercel.
+const explicitBaseURL = configuredAppUrl();
 // Explicit `string[]` (not a readonly tuple) — Better Auth's DynamicBaseURLConfig
 // requires a mutable `allowedHosts: string[]`.
 const previewAllowedHosts: string[] = [...PREVIEW_ALLOWED_HOSTS];
@@ -96,12 +94,13 @@ const baseURL = explicitBaseURL ?? {
 // Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
 // Missing entries here surface as FORBIDDEN "Invalid origin".
 const trustedOrigins: string[] = explicitBaseURL
-  ? [explicitBaseURL, ...vercelDeploymentOrigins(), ...LOCAL_DEV_ORIGINS]
+  ? [...deploymentOrigins(), ...LOCAL_DEV_ORIGINS]
   : [
       // Host wildcards (matched against Origin's host)
       ...previewAllowedHosts,
       // Full-origin wildcards (matched against Origin)
       ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
+      ...deploymentOrigins(),
       ...LOCAL_DEV_ORIGINS,
     ];
 
