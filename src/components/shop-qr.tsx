@@ -9,7 +9,7 @@ export function ShopQr({ url, size = 280 }: { url: string; size?: number }) {
     void QRCode.toDataURL(url, {
       width: size,
       margin: 1,
-      color: { dark: "#1c1915", light: "#f3eee6" },
+      color: { dark: "#1c1915", light: "#fffefb" },
     }).then((data) => {
       if (!cancelled) setSrc(data);
     });
@@ -19,7 +19,9 @@ export function ShopQr({ url, size = 280 }: { url: string; size?: number }) {
   }, [url, size]);
 
   if (!src) {
-    return <div className="mx-auto aspect-square w-full max-w-xs animate-pulse rounded-xl bg-secondary" />;
+    return (
+      <div className="mx-auto aspect-square w-full max-w-xs animate-pulse rounded-xl bg-secondary" />
+    );
   }
   return (
     <img

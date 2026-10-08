@@ -6,13 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { draftForFollowUp, sendFollowUp, skipFollowUp } from "@/lib/server/tena";
-import {
-  formatPhone,
-  initials,
-  kindLabel,
-  relativeDue,
-  whatsappUrl,
-} from "@/lib/utils";
+import { formatPhone, initials, kindLabel, relativeDue, whatsappUrl } from "@/lib/utils";
 import type { FollowUp } from "@/lib/types";
 
 export function FollowUpCard({ item }: { item: FollowUp }) {
@@ -44,8 +38,7 @@ export function FollowUpCard({ item }: { item: FollowUp }) {
   });
 
   const skipMut = useMutation({
-    mutationFn: (hours?: number) =>
-      skipFollowUp({ data: { id: item.id, snoozeHours: hours } }),
+    mutationFn: (hours?: number) => skipFollowUp({ data: { id: item.id, snoozeHours: hours } }),
     onSuccess: () => {
       toast.success("Updated");
       void qc.invalidateQueries();
@@ -83,9 +76,7 @@ export function FollowUpCard({ item }: { item: FollowUp }) {
           </p>
         </div>
       </div>
-      {item.reason && (
-        <p className="mt-3 text-sm text-muted-foreground">{item.reason}</p>
-      )}
+      {item.reason && <p className="mt-3 text-sm text-muted-foreground">{item.reason}</p>}
       <Textarea
         className="mt-3 min-h-24 text-sm"
         value={body}

@@ -288,8 +288,7 @@ const DEMO: SeedCustomer[] = [
         kind: "enquiry",
         dueHoursFromNow: -1,
         reason: "Fresh enquiry this morning — reply now.",
-        draft:
-          "Hi Njeri — yes, 42 is in. We hem in 2 days, free if you buy. Want me to hold them?",
+        draft: "Hi Njeri — yes, 42 is in. We hem in 2 days, free if you buy. Want me to hold them?",
       },
     ],
   },
@@ -425,9 +424,7 @@ export async function ensureShopAndDemo(sql: Sql, userId: string) {
       c.lastPurchaseHoursAgo == null
         ? null
         : new Date(Date.now() - c.lastPurchaseHoursAgo * 3600_000).toISOString();
-    const lastContact = new Date(
-      Date.now() - c.lastContactHoursAgo * 3600_000,
-    ).toISOString();
+    const lastContact = new Date(Date.now() - c.lastContactHoursAgo * 3600_000).toISOString();
 
     const cust = await sql<{ id: number }>`
       insert into customers (
@@ -450,9 +447,7 @@ export async function ensureShopAndDemo(sql: Sql, userId: string) {
 
     let conversationId: number | null = null;
     if (c.messages.length > 0) {
-      const lastMsg = c.messages.reduce((a, b) =>
-        a.hoursAgo < b.hoursAgo ? a : b,
-      );
+      const lastMsg = c.messages.reduce((a, b) => (a.hoursAgo < b.hoursAgo ? a : b));
       const lastAt = new Date(Date.now() - lastMsg.hoursAgo * 3600_000).toISOString();
       const conv = await sql<{ id: number }>`
         insert into conversations (user_id, customer_id, channel, status, last_message_at)

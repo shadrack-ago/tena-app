@@ -2,110 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { resolveShop } from "./shop";
+import { requireAdmin, userLabel } from "./admin";
 
-async function requireAdmin(sql: Awaited<ReturnType<typeof getSql>>, userId: string) {
-  const rows = await sql<{ user_id: string }>`
-    select user_id from platform_admins where user_id = ${userId} limit 1
-  `;
-  if (!rows[0]) throw new Error("Not a Tena admin.");
-}
-
-/** Emails allowed to claim Tena ops — comma-separated `TENA_ADMIN_EMAILS`. */
-function adminEmails(): string[] {
-  return (process.env.TENA_ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function mayClaim(email: string | null) {
-  return Boolean(email && adminEmails().includes(email.toLowerCase()));
-}
-
-async function userLabel(sql: Awaited<ReturnType<typeof getSql>>, userId: string) {
-  const rows = await sql<{ name: string; email: string }>`
-    select name, email from "user" where id = ${userId} limit 1
-  `;
-  return {
-    name: rows[0]?.name || "Tena",
-    email: rows[0]?.email || null,
-  };
-}
-
-export const getOpsSession = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
-  .handler(async ({ context }) => {
-    const sql = await getSql();
-    const me = await sql<{ user_id: string }>`
-      select user_id from platform_admins where user_id = ${context.userId} limit 1
-    `;
-    const who = await userLabel(sql, context.userId);
-    return {
-      isAdmin: Boolean(me[0]),
-      canClaim: !me[0] && mayClaim(who.email),
-      name: who.name,
-      email: who.email,
-    };
-  });
-
-export const claimOps = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .handler(async ({ context }) => {
-    const sql = await getSql();
-    const who = await userLabel(sql, context.userId);
-    if (!mayClaim(who.email)) throw new Error("This email is not a Tena admin.");
-    await sql`
-      insert into platform_admins (user_id, email, name)
-      values (${context.userId}, ${who.email}, ${who.name})
-      on conflict (user_id) do nothing
-    `;
-    return { ok: true as const };
-  });
-
-export const getOpsBoard = createServerFn({ method: "GET" })
+/** Support tickets: Tena HQ side (getOps…, replyOps…) and the shop side (…My…). */
+export const getOpsTickets = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
     await requireAdmin(sql, context.userId);
-    const shops = await sql<{
-      id: number;
-      name: string;
-      city: string;
-      owner_name: string | null;
-      seeded: boolean;
-      trial_ends_at: string | null;
-      plan: string | null;
-      sub_status: string | null;
-      current_period_end: string | null;
-      people: number;
-      staff: number;
-      owner_email: string | null;
-      created_at: string;
-      sales_30d_kes: number;
-      sales_30d: number;
-      sent_30d: number;
-      due_now: number;
-      last_active: string | null;
-    }>`
-      select s.id, s.name, s.city, s.owner_name, s.seeded, s.trial_ends_at, s.created_at,
-             sub.plan, sub.status as sub_status, sub.current_period_end,
-             u.email as owner_email,
-             coalesce((select count(*) from customers c where c.user_id = s.user_id), 0)::int as people,
-             coalesce((select count(*) from shop_members m where m.shop_id = s.id and m.status = 'active'), 0)::int as staff,
-             coalesce((select sum(x.amount_kes) from sales x where x.user_id = s.user_id and x.sold_at > now() - interval '30 days'), 0)::int as sales_30d_kes,
-             coalesce((select count(*) from sales x where x.user_id = s.user_id and x.sold_at > now() - interval '30 days'), 0)::int as sales_30d,
-             coalesce((select count(*) from messages m where m.user_id = s.user_id and m.direction = 'out' and m.sent_at > now() - interval '30 days'), 0)::int as sent_30d,
-             coalesce((select count(*) from follow_ups f where f.user_id = s.user_id and f.status = 'due' and f.due_at <= now()), 0)::int as due_now,
-             greatest(
-               (select max(x.sold_at) from sales x where x.user_id = s.user_id),
-               (select max(m.sent_at) from messages m where m.user_id = s.user_id and m.direction = 'out'),
-               (select max(c.created_at) from customers c where c.user_id = s.user_id)
-             ) as last_active
-      from shops s
-      left join subscriptions sub on sub.shop_id = s.id
-      left join "user" u on u.id = s.user_id
-      order by s.id desc
-    `;
     const tickets = await sql<{
       id: number;
       shop_id: number;
@@ -120,46 +24,17 @@ export const getOpsBoard = createServerFn({ method: "GET" })
       from support_tickets t
       join shops s on s.id = t.shop_id
       order by case when t.status = 'open' then 0 else 1 end, t.created_at desc
-      limit 40
+      limit 100
     `;
-    return {
-      shops: shops.map((s) => {
-        const periodEnd = s.current_period_end ? new Date(s.current_period_end).getTime() : 0;
-        const trialEnd = s.trial_ends_at ? new Date(s.trial_ends_at).getTime() : 0;
-        let access: "active" | "trial" | "locked" = "locked";
-        if (s.sub_status === "active" && periodEnd > Date.now()) access = "active";
-        else if (trialEnd > Date.now()) access = "trial";
-        return {
-          id: s.id,
-          name: s.name,
-          city: s.city,
-          ownerName: s.owner_name,
-          seeded: s.seeded,
-          plan: s.plan,
-          access,
-          periodEnd: s.current_period_end,
-          trialEndsAt: s.trial_ends_at,
-          people: s.people,
-          staff: s.staff,
-          ownerEmail: s.owner_email,
-          createdAt: s.created_at,
-          sales30dKes: s.sales_30d_kes,
-          sales30d: s.sales_30d,
-          sent30d: s.sent_30d,
-          dueNow: s.due_now,
-          lastActive: s.last_active,
-        };
-      }),
-      tickets: tickets.map((t) => ({
-        id: t.id,
-        shopId: t.shop_id,
-        shopName: t.shop_name,
-        subject: t.subject,
-        status: t.status,
-        createdAt: t.created_at,
-        lastBody: t.last_body,
-      })),
-    };
+    return tickets.map((t) => ({
+      id: t.id,
+      shopId: t.shop_id,
+      shopName: t.shop_name,
+      subject: t.subject,
+      status: t.status,
+      createdAt: t.created_at,
+      lastBody: t.last_body,
+    }));
   });
 
 export const getOpsTicket = createServerFn({ method: "GET" })

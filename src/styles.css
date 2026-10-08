@@ -2,37 +2,54 @@
 @import "tw-animate-css";
 
 @theme {
-  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  /* Two fonts: Bricolage Grotesque for headings, Figtree for everything else. */
+  --font-display: "Bricolage Grotesque", "Figtree", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  --color-background: #f3eee6;
-  --color-foreground: #1c1915;
-  --color-card: #fffdf9;
-  --color-card-foreground: #1c1915;
-  --color-popover: #fffdf9;
-  --color-popover-foreground: #1c1915;
-  --color-primary: #0d5c59;
-  --color-primary-foreground: #f4f0ea;
-  --color-secondary: #ebe4d8;
-  --color-secondary-foreground: #1c1915;
-  --color-muted: #ebe4d8;
-  --color-muted-foreground: #6b645b;
-  --color-accent: #dceae8;
-  --color-accent-foreground: #0d5c59;
-  --color-destructive: #9b3a2f;
-  --color-destructive-foreground: #faf7f2;
-  --color-border: #e4dcd0;
-  --color-input: #e4dcd0;
-  --color-ring: #0d5c59;
-  --color-success: #2f6b45;
-  --color-warn: #9a6b2f;
-  --color-chat-out: #d7efe8;
-  --color-chat-in: #fffdf9;
-  --color-ink: #1c1915;
-  --color-paper: #f3eee6;
+  /*
+   * Four key colours — every token below is one of them or a tint/shade of one.
+   *   Teal  #0d5c59  brand, actions
+   *   Sun   #f5b041  highlight, rewards
+   *   Ink   #1c1915  text
+   *   Paper #f8f6f1  surfaces
+   * Destructive is the single functional exception (errors only).
+   */
   --color-teal: #0d5c59;
   --color-teal-deep: #0a4c4a;
+  --color-teal-ink: #0b2f2e;
+  --color-mint: #7fd6c9;
+  /* Brighter teal step for chart marks (passes the chroma floor on paper). */
+  --color-teal-chart: #008f85;
+  --color-sun: #f5b041;
+  --color-sun-ink: #3b2604;
+  --color-sun-tint: #fdf0dc;
+  --color-ink: #1c1915;
+  --color-paper: #f8f6f1;
+
+  --color-background: var(--color-paper);
+  --color-foreground: var(--color-ink);
+  --color-card: #fffefb;
+  --color-card-foreground: var(--color-ink);
+  --color-popover: #fffefb;
+  --color-popover-foreground: var(--color-ink);
+  --color-primary: var(--color-teal);
+  --color-primary-foreground: #fffefb;
+  --color-secondary: #efebe3;
+  --color-secondary-foreground: var(--color-ink);
+  --color-muted: #efebe3;
+  --color-muted-foreground: #6b645b;
+  --color-accent: #dceae8;
+  --color-accent-foreground: var(--color-teal);
+  --color-destructive: #9b3a2f;
+  --color-destructive-foreground: #fffefb;
+  --color-border: #e6e0d6;
+  --color-input: #e6e0d6;
+  --color-ring: var(--color-teal);
+  --color-success: var(--color-teal);
+  --color-warn: #9a6b2f;
+  --color-chat-out: #d7efe8;
+  --color-chat-in: #fffefb;
 
   --radius-xs: 0.25rem;
   --radius-sm: 0.5rem;
@@ -62,6 +79,7 @@
   h3 {
     text-wrap: balance;
     font-family: var(--font-display);
+    letter-spacing: -0.015em;
   }
 
   p {
@@ -97,6 +115,23 @@
     line-height: 1.6;
   }
 }
+
+/* Landing page motion */
+@keyframes tena-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes tena-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes tena-typing {
+  0%, 80%, 100% { opacity: 0.25; }
+  40% { opacity: 1; }
+}
+.tena-rise { animation: tena-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.tena-float { animation: tena-float 6s ease-in-out infinite; }
+.tena-dot { animation: tena-typing 1.2s infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -57,7 +57,11 @@ function ShopDesk() {
   const payMut = useMutation({
     mutationFn: () => startMpesaCheckout({ data: { plan, phone: mpesa } }),
     onSuccess: () => {
-      toast.success("Check that phone for the M-Pesa prompt");
+      toast.success(
+        q.data?.billingMode === "demo"
+          ? "Check that phone for the M-Pesa prompt"
+          : "Follow the steps to pay by M-Pesa",
+      );
       void qc.invalidateQueries({ queryKey: ["shop-desk"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -76,8 +80,10 @@ function ShopDesk() {
 
   const confirmMut = useMutation({
     mutationFn: (paymentId: number) => confirmMpesaPayment({ data: { paymentId } }),
-    onSuccess: () => {
-      toast.success("Shop is subscribed");
+    onSuccess: (res) => {
+      toast.success(
+        res.activated ? "Shop is subscribed" : "Thanks. Tena will confirm your payment shortly.",
+      );
       void qc.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -90,12 +96,18 @@ function ShopDesk() {
   });
 
   if (q.isLoading) {
-    return <div className="p-6"><div className="h-40 animate-pulse rounded-xl bg-secondary" /></div>;
+    return (
+      <div className="p-6">
+        <div className="h-40 animate-pulse rounded-xl bg-secondary" />
+      </div>
+    );
   }
   if (!q.data) return null;
   const d = q.data;
   const locked = d.access.status === "locked";
+  const suspended = d.access.suspended;
   const owner = d.role === "owner";
+  const demo = d.billingMode === "demo";
 
   return (
     <div className="mx-auto max-w-2xl space-y-10 px-4 py-6 md:px-8">
@@ -107,15 +119,24 @@ function ShopDesk() {
         </p>
       </div>
 
-      {locked && (
-        <div className="rounded-xl border border-border bg-accent px-4 py-3 text-sm text-accent-foreground">
-          Trial ended. Subscribe with M-Pesa or card to open Today, Inbox, and Capture.
+      {suspended ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <p className="font-semibold">This shop is suspended.</p>
+          {d.access.suspendedReason && <p className="mt-1">{d.access.suspendedReason}</p>}
+          <p className="mt-1">Contact Tena support below to sort it out.</p>
         </div>
+      ) : (
+        locked && (
+          <div className="rounded-xl border border-border bg-accent px-4 py-3 text-sm text-accent-foreground">
+            Your plan has ended. Subscribe with M-Pesa to open Today, Inbox, and Capture again.
+          </div>
+        )
       )}
 
       {!locked && d.access.status === "trial" && (
         <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
-          Trial · {d.access.daysLeft} day{d.access.daysLeft === 1 ? "" : "s"} left. Same shop for every staff login.
+          Trial · {d.access.daysLeft} day{d.access.daysLeft === 1 ? "" : "s"} left. Same shop for
+          every staff login.
         </p>
       )}
 
@@ -128,7 +149,8 @@ function ShopDesk() {
       <section>
         <h2 className="font-display text-xl font-semibold">Counter QR</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Tape this at the till. A walk-in scans, types name, number, and what they wanted. It lands on Today as a follow-up. You never retype the number.
+          Tape this at the till. A walk-in scans, types name, number, and what they wanted. It lands
+          on Today as a follow-up. You never retype the number.
         </p>
         {joinUrl ? (
           <div className="mt-4 rounded-2xl border border-border bg-card p-5">
@@ -144,10 +166,7 @@ function ShopDesk() {
               >
                 Copy link
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => window.print()}
-              >
+              <Button variant="outline" onClick={() => window.print()}>
                 Print poster
               </Button>
             </div>
@@ -160,7 +179,8 @@ function ShopDesk() {
       <section>
         <h2 className="font-display text-xl font-semibold">Staff</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Do not share one password. Send them this invite. They sign up with their own email. Same shop, same people, same follow-ups.
+          Do not share one password. Send them this invite. They sign up with their own email. Same
+          shop, same people, same follow-ups.
         </p>
         <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
           <li>Copy the invite link.</li>
@@ -216,9 +236,13 @@ function ShopDesk() {
       <section>
         <h2 className="font-display text-xl font-semibold">Plan</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          One bill for the shop. M-Pesa or card. If it lapses, Tena locks until you pay.
+          One bill for the shop, paid by M-Pesa. If it lapses, Tena locks until you pay.
         </p>
-        {owner ? (
+        {suspended ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Payments are paused while the shop is suspended.
+          </p>
+        ) : owner ? (
           <div className="mt-4 space-y-3">
             <div className="grid grid-cols-2 gap-2">
               {(Object.keys(d.plans) as PlanId[]).map((id) => (
@@ -242,38 +266,76 @@ function ShopDesk() {
                 </button>
               ))}
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setPayMethod("mpesa")}
-                className={`h-11 rounded-md border text-sm font-medium ${
-                  payMethod === "mpesa"
-                    ? "border-primary bg-accent text-accent-foreground"
-                    : "border-border bg-card"
-                }`}
-              >
-                M-Pesa
-              </button>
-              <button
-                type="button"
-                onClick={() => setPayMethod("card")}
-                className={`h-11 rounded-md border text-sm font-medium ${
-                  payMethod === "card"
-                    ? "border-primary bg-accent text-accent-foreground"
-                    : "border-border bg-card"
-                }`}
-              >
-                Card
-              </button>
-            </div>
-            {d.pendingPayment ? (
+            {demo && (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPayMethod("mpesa")}
+                  className={`h-11 rounded-md border text-sm font-medium ${
+                    payMethod === "mpesa"
+                      ? "border-primary bg-accent text-accent-foreground"
+                      : "border-border bg-card"
+                  }`}
+                >
+                  M-Pesa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPayMethod("card")}
+                  className={`h-11 rounded-md border text-sm font-medium ${
+                    payMethod === "card"
+                      ? "border-primary bg-accent text-accent-foreground"
+                      : "border-border bg-card"
+                  }`}
+                >
+                  Card
+                </button>
+              </div>
+            )}
+            {d.pendingPayment?.status === "submitted" ? (
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-sm font-medium">Payment being confirmed</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Reference {d.pendingPayment.reference} · {formatKes(d.pendingPayment.amountKes)}.
+                  Tena checks M-Pesa and activates your plan, usually within a few hours.
+                </p>
+              </div>
+            ) : d.pendingPayment && !demo ? (
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-sm font-medium">
+                  Send {formatKes(d.pendingPayment.amountKes)} by M-Pesa
+                </p>
+                <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+                  <li>
+                    Pay to{" "}
+                    <span className="font-medium text-foreground">
+                      {d.mpesaPayTo ?? "the Tena M-Pesa number support gives you"}
+                    </span>
+                  </li>
+                  <li>
+                    Use account/reference{" "}
+                    <span className="font-mono font-medium text-foreground">
+                      {d.pendingPayment.reference}
+                    </span>
+                  </li>
+                  <li>Tap the button below once you get the M-Pesa SMS.</li>
+                </ol>
+                <Button
+                  className="mt-3"
+                  onClick={() => confirmMut.mutate(d.pendingPayment!.id)}
+                  disabled={confirmMut.isPending}
+                >
+                  {confirmMut.isPending ? "Sending…" : "I’ve paid"}
+                </Button>
+              </div>
+            ) : d.pendingPayment ? (
               <div className="rounded-xl border border-border bg-card p-4">
                 <p className="text-sm font-medium">
                   M-Pesa prompt sent{d.pendingPayment.phone ? ` to ${d.pendingPayment.phone}` : ""}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Reference {d.pendingPayment.reference} · {formatKes(d.pendingPayment.amountKes)}.
-                  On a live shop this is a real STK prompt. Confirm PIN here to activate this preview.
+                  Demo billing: confirming here activates the plan without real money.
                 </p>
                 <Button
                   className="mt-3"
@@ -286,7 +348,7 @@ function ShopDesk() {
             ) : payMethod === "mpesa" ? (
               <>
                 <label className="grid gap-1 text-sm">
-                  <span className="font-medium">M-Pesa number</span>
+                  <span className="font-medium">M-Pesa number that will pay</span>
                   <Input
                     value={mpesa}
                     onChange={(e) => setMpesa(e.target.value)}
@@ -299,7 +361,11 @@ function ShopDesk() {
                   onClick={() => payMut.mutate()}
                   disabled={payMut.isPending || !mpesa.trim()}
                 >
-                  {payMut.isPending ? "Sending…" : `Pay ${formatKes(d.plans[plan].kes)} with M-Pesa`}
+                  {payMut.isPending
+                    ? "Sending…"
+                    : demo
+                      ? `Pay ${formatKes(d.plans[plan].kes)} with M-Pesa`
+                      : `Continue to pay ${formatKes(d.plans[plan].kes)}`}
                 </Button>
               </>
             ) : (
@@ -352,22 +418,25 @@ function ShopDesk() {
                   />
                 </div>
                 <Button className="w-full" type="submit" disabled={cardMut.isPending}>
-                  {cardMut.isPending
-                    ? "Paying…"
-                    : `Pay ${formatKes(d.plans[plan].kes)} by card`}
+                  {cardMut.isPending ? "Paying…" : `Pay ${formatKes(d.plans[plan].kes)} by card`}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Card details stay on this phone. Live shops will charge through Pesapal or Stripe — Tena never stores the full number.
+                  Card details stay on this phone. Live shops will charge through Pesapal or Stripe
+                  — Tena never stores the full number.
                 </p>
               </form>
             )}
-            <button
-              type="button"
-              className="text-xs text-muted-foreground underline"
-              onClick={() => lockMut.mutate(d.access.status !== "locked")}
-            >
-              {d.access.status === "locked" ? "Restore trial (preview)" : "Preview locked shop"}
-            </button>
+            {demo && (
+              <button
+                type="button"
+                className="text-xs text-muted-foreground underline"
+                onClick={() => lockMut.mutate(d.access.status !== "locked")}
+              >
+                {d.access.status === "locked"
+                  ? "Restore trial (demo)"
+                  : "Preview locked shop (demo)"}
+              </button>
+            )}
           </div>
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">

@@ -15,6 +15,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { getAccess } from "@/lib/server/shop";
+import { Logo } from "@/components/logo";
 
 const NAV: {
   to: "/app" | "/app/inbox" | "/app/people" | "/app/loyalty" | "/app/coach";
@@ -37,8 +38,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col bg-background md:flex-row">
       <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-card md:flex">
-        <Link to="/app" className="px-5 py-5 font-display text-2xl font-semibold text-primary">
-          Tena
+        <Link to="/app" className="px-5 py-5">
+          <Logo />
         </Link>
         <nav className="flex flex-1 flex-col gap-1 px-3">
           {NAV.map((item) => {
@@ -118,8 +119,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
         <header className="flex items-center justify-between gap-2 border-b border-border bg-card px-4 py-3 md:hidden">
-          <Link to="/app" className="font-display text-xl font-semibold text-primary">
-            Tena
+          <Link to="/app">
+            <Logo size="sm" />
           </Link>
           <div className="flex items-center gap-2">
             <Link

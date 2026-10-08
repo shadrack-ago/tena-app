@@ -176,9 +176,7 @@ No markdown. JSON only.`;
         bought && typeof parsed.amountKes === "number" && parsed.amountKes > 0
           ? parsed.amountKes
           : null,
-      followUpKind: String(
-        parsed.followUpKind ?? (bought ? "post_purchase" : "enquiry"),
-      ),
+      followUpKind: String(parsed.followUpKind ?? (bought ? "post_purchase" : "enquiry")),
       followUpReason: String(parsed.followUpReason ?? "New capture"),
       draft: String(parsed.draft ?? fallback.draft),
     };
@@ -191,8 +189,7 @@ function heuristicParse(note: string, shopName: string) {
   const phone = extractKenyanPhone(note) ?? "";
   const amountMatch = note.match(/(?:ksh|kes|kshs)?\s*([0-9]{3,6})/i);
   const nameMatch =
-    note.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/) ??
-    note.match(/\b([A-Z][a-z]{2,})\b/);
+    note.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/) ?? note.match(/\b([A-Z][a-z]{2,})\b/);
   const name = nameMatch?.[1] ?? "New customer";
   const first = name.split(" ")[0];
   const bought =

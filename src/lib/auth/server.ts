@@ -19,6 +19,8 @@ import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
 import { ensureDbReady, getPglite } from "../db";
 import { emailAndPasswordEnabled } from "./email-password";
+import { passwordResetEmail, sendEmail } from "../server/email";
+import { PG_POOL_MAX, vercelDeploymentOrigins } from "../server/app-url";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { pgliteDialect } from "./pglite-dialect";
 import { PREVIEW_ALLOWED_HOSTS } from "./preview";
@@ -65,7 +67,11 @@ export const authConfigured = !authDisabled;
 // it derives the origin per-request from the (proxied) host, validated against the
 // preview allowlist, which makes the OAuth `redirect_uri` the concrete preview URL
 // the broker's preview client accepts.
-const explicitBaseURL = env("BETTER_AUTH_URL");
+const explicitBaseURL =
+  env("BETTER_AUTH_URL") ??
+  (env("VERCEL_PROJECT_PRODUCTION_URL")
+    ? `https://${env("VERCEL_PROJECT_PRODUCTION_URL")}`
+    : undefined);
 // Explicit `string[]` (not a readonly tuple) — Better Auth's DynamicBaseURLConfig
 // requires a mutable `allowedHosts: string[]`.
 const previewAllowedHosts: string[] = [...PREVIEW_ALLOWED_HOSTS];
@@ -90,7 +96,7 @@ const baseURL = explicitBaseURL ?? {
 // Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
 // Missing entries here surface as FORBIDDEN "Invalid origin".
 const trustedOrigins: string[] = explicitBaseURL
-  ? [explicitBaseURL, ...LOCAL_DEV_ORIGINS]
+  ? [explicitBaseURL, ...vercelDeploymentOrigins(), ...LOCAL_DEV_ORIGINS]
   : [
       // Host wildcards (matched against Origin's host)
       ...previewAllowedHosts,
@@ -107,7 +113,7 @@ const databaseUrl = env("DATABASE_URL");
 // schema from `migrations/auth/0001_auth.sql`, copied into `migrations/` when
 // the app turns sign-in on.
 const database = databaseUrl
-  ? new Pool({ connectionString: databaseUrl })
+  ? new Pool({ connectionString: databaseUrl, max: PG_POOL_MAX })
   : { dialect: pgliteDialect(() => getPglite()), type: "postgres" as const };
 
 /** Session token cookie name — also read by the live-preview popup completion page. */
@@ -161,7 +167,19 @@ export const auth = betterAuth({
   session: { cookieCache: { enabled: true, maxAge: 300 } },
 
   // Local email/password — toggled only via `./email-password` (not a plugin).
-  ...(emailAndPasswordEnabled ? { emailAndPassword: { enabled: true } } : {}),
+  ...(emailAndPasswordEnabled
+    ? {
+        emailAndPassword: {
+          enabled: true,
+          resetPasswordTokenExpiresIn: 3600,
+          // A reset signs the account out everywhere else.
+          revokeSessionsOnPasswordReset: true,
+          sendResetPassword: async ({ user, url }) => {
+            await sendEmail(passwordResetEmail(user.email, user.name, url));
+          },
+        },
+      }
+    : {}),
 
   // `__Host-` prefixed cookies: the browser REFUSES any same-named cookie that
   // carries a `Domain` attribute, so a sibling `*.grok.me` app cannot "toss" a

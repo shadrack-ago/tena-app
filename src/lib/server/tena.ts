@@ -3,20 +3,8 @@ import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { uidOf } from "./shop";
 import { dueHoursFor } from "@/lib/utils";
-import {
-  draftFollowUpMessage,
-  parseCaptureNote,
-  writeCoachBrief,
-} from "./ai";
-import type {
-  Conversation,
-  Customer,
-  Dashboard,
-  FollowUp,
-  Message,
-  Sale,
-  Shop,
-} from "@/lib/types";
+import { draftFollowUpMessage, parseCaptureNote, writeCoachBrief } from "./ai";
+import type { Conversation, Customer, Dashboard, FollowUp, Message, Sale, Shop } from "@/lib/types";
 
 function mapShop(row: {
   id: number;
@@ -248,15 +236,19 @@ export const listCustomers = createServerFn({ method: "GET" })
 export const getCustomer = createServerFn({ method: "GET" })
   .validator((id: number) => id)
   .middleware([authMiddleware])
-  .handler(async ({ context, data: id }): Promise<{
-    customer: Customer;
-    sales: Sale[];
-    followUps: FollowUp[];
-    conversationId: number | null;
-  } | null> => {
-    const sql = await getSql();
-    const uid = await uidOf(sql, context.userId);
-    const rows = await sql<CustRow>`
+  .handler(
+    async ({
+      context,
+      data: id,
+    }): Promise<{
+      customer: Customer;
+      sales: Sale[];
+      followUps: FollowUp[];
+      conversationId: number | null;
+    } | null> => {
+      const sql = await getSql();
+      const uid = await uidOf(sql, context.userId);
+      const rows = await sql<CustRow>`
       select cu.*,
         coalesce((select sum(s.amount_kes) from sales s where s.customer_id = cu.id), 0)::int as total_spent,
         coalesce((select count(*) from sales s where s.customer_id = cu.id), 0)::int as sale_count
@@ -264,19 +256,19 @@ export const getCustomer = createServerFn({ method: "GET" })
       where cu.user_id = ${uid} and cu.id = ${id}
       limit 1
     `;
-    if (!rows[0]) return null;
-    const sales = await sql<{
-      id: number;
-      customer_id: number;
-      item: string;
-      amount_kes: number;
-      sold_at: string;
-    }>`
+      if (!rows[0]) return null;
+      const sales = await sql<{
+        id: number;
+        customer_id: number;
+        item: string;
+        amount_kes: number;
+        sold_at: string;
+      }>`
       select id, customer_id, item, amount_kes, sold_at
       from sales where user_id = ${uid} and customer_id = ${id}
       order by sold_at desc
     `;
-    const followUps = await sql<FollowUpRow>`
+      const followUps = await sql<FollowUpRow>`
       select f.id, f.customer_id, c.name as customer_name, c.phone as customer_phone,
              f.conversation_id, f.kind, f.due_at, f.status, f.draft_text, f.reason
       from follow_ups f
@@ -284,24 +276,25 @@ export const getCustomer = createServerFn({ method: "GET" })
       where f.user_id = ${uid} and f.customer_id = ${id}
       order by f.due_at desc
     `;
-    const conv = await sql<{ id: number }>`
+      const conv = await sql<{ id: number }>`
       select id from conversations
       where user_id = ${uid} and customer_id = ${id}
       order by last_message_at desc limit 1
     `;
-    return {
-      customer: mapCustomer(rows[0]),
-      sales: sales.map((s) => ({
-        id: s.id,
-        customerId: s.customer_id,
-        item: s.item,
-        amountKes: s.amount_kes,
-        soldAt: s.sold_at,
-      })),
-      followUps: followUps.map(mapFollowUp),
-      conversationId: conv[0]?.id ?? null,
-    };
-  });
+      return {
+        customer: mapCustomer(rows[0]),
+        sales: sales.map((s) => ({
+          id: s.id,
+          customerId: s.customer_id,
+          item: s.item,
+          amountKes: s.amount_kes,
+          soldAt: s.sold_at,
+        })),
+        followUps: followUps.map(mapFollowUp),
+        conversationId: conv[0]?.id ?? null,
+      };
+    },
+  );
 
 export const listConversations = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
@@ -324,14 +317,18 @@ export const listConversations = createServerFn({ method: "GET" })
 export const getThread = createServerFn({ method: "GET" })
   .validator((id: number) => id)
   .middleware([authMiddleware])
-  .handler(async ({ context, data: id }): Promise<{
-    conversation: Conversation;
-    messages: Message[];
-    due: FollowUp | null;
-  } | null> => {
-    const sql = await getSql();
-    const uid = await uidOf(sql, context.userId);
-    const rows = await sql<ConvRow>`
+  .handler(
+    async ({
+      context,
+      data: id,
+    }): Promise<{
+      conversation: Conversation;
+      messages: Message[];
+      due: FollowUp | null;
+    } | null> => {
+      const sql = await getSql();
+      const uid = await uidOf(sql, context.userId);
+      const rows = await sql<ConvRow>`
       select conv.id, conv.customer_id, cu.name as customer_name, cu.phone as customer_phone,
              conv.channel, conv.status, conv.last_message_at,
              (select m.body from messages m where m.conversation_id = conv.id order by m.sent_at desc limit 1) as last_body,
@@ -341,22 +338,22 @@ export const getThread = createServerFn({ method: "GET" })
       where conv.user_id = ${uid} and conv.id = ${id}
       limit 1
     `;
-    if (!rows[0]) return null;
-    const messages = await sql<{
-      id: number;
-      conversation_id: number;
-      customer_id: number;
-      direction: string;
-      body: string;
-      is_ai_draft: boolean;
-      sent_at: string;
-    }>`
+      if (!rows[0]) return null;
+      const messages = await sql<{
+        id: number;
+        conversation_id: number;
+        customer_id: number;
+        direction: string;
+        body: string;
+        is_ai_draft: boolean;
+        sent_at: string;
+      }>`
       select id, conversation_id, customer_id, direction, body, is_ai_draft, sent_at
       from messages
       where user_id = ${uid} and conversation_id = ${id}
       order by sent_at asc
     `;
-    const due = await sql<FollowUpRow>`
+      const due = await sql<FollowUpRow>`
       select f.id, f.customer_id, c.name as customer_name, c.phone as customer_phone,
              f.conversation_id, f.kind, f.due_at, f.status, f.draft_text, f.reason
       from follow_ups f
@@ -365,20 +362,21 @@ export const getThread = createServerFn({ method: "GET" })
       order by f.due_at asc
       limit 1
     `;
-    return {
-      conversation: mapConv(rows[0]),
-      messages: messages.map((m) => ({
-        id: m.id,
-        conversationId: m.conversation_id,
-        customerId: m.customer_id,
-        direction: m.direction === "out" ? "out" : "in",
-        body: m.body,
-        isAiDraft: m.is_ai_draft,
-        sentAt: m.sent_at,
-      })),
-      due: due[0] ? mapFollowUp(due[0]) : null,
-    };
-  });
+      return {
+        conversation: mapConv(rows[0]),
+        messages: messages.map((m) => ({
+          id: m.id,
+          conversationId: m.conversation_id,
+          customerId: m.customer_id,
+          direction: m.direction === "out" ? "out" : "in",
+          body: m.body,
+          isAiDraft: m.is_ai_draft,
+          sentAt: m.sent_at,
+        })),
+        due: due[0] ? mapFollowUp(due[0]) : null,
+      };
+    },
+  );
 
 export const sendMessage = createServerFn({ method: "POST" })
   .validator((input: { conversationId: number; body: string; followUpId?: number }) => input)
@@ -578,10 +576,7 @@ export const saveCapturedCustomer = createServerFn({ method: "POST" })
     const sql = await getSql();
     const uid = await uidOf(sql, context.userId);
     const now = new Date().toISOString();
-    const amount =
-      data.bought && data.amountKes != null && data.amountKes > 0
-        ? data.amountKes
-        : 0;
+    const amount = data.bought && data.amountKes != null && data.amountKes > 0 ? data.amountKes : 0;
     const stamps = data.bought ? 1 : 0;
     const points = amount;
     const lastPurchase = data.bought ? now : null;

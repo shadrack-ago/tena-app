@@ -4,14 +4,23 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureShopAndDemo } from "./seed";
 import type { Shop } from "@/lib/types";
 
-export const PLANS = {
-  monthly: { id: "monthly" as const, label: "1 month", kes: 999, months: 1 },
-  quarter: { id: "quarter" as const, label: "3 months", kes: 2699, months: 3 },
-  half: { id: "half" as const, label: "6 months", kes: 4999, months: 6 },
-  yearly: { id: "yearly" as const, label: "1 year", kes: 8999, months: 12 },
-};
+import { PLANS, type PlanId } from "@/lib/plans";
 
-export type PlanId = keyof typeof PLANS;
+export { PLANS, type PlanId };
+
+/**
+ * "manual" (default): shops pay by M-Pesa outside the app, tap "I've paid", and a
+ * Tena admin confirms in /ops. "demo": the old self-confirming preview flow —
+ * for local testing only, never for real shops.
+ */
+export function billingMode(): "manual" | "demo" {
+  return process.env.TENA_BILLING_MODE?.trim() === "demo" ? "demo" : "manual";
+}
+
+/** Where shops send M-Pesa money in manual mode, e.g. "Till 123456". */
+export function mpesaPayTo(): string | null {
+  return process.env.TENA_MPESA_PAY_TO?.trim() || null;
+}
 export type MemberRole = "owner" | "staff";
 export type AccessStatus = "trial" | "active" | "locked";
 
@@ -79,7 +88,12 @@ async function uniqueCode(sql: Sql, column: "join_code" | "invite_code", len: nu
   return randomCode(len) + randomCode(2);
 }
 
-export async function ensureShopMeta(sql: Sql, shopId: number, ownerUserId: string, ownerName?: string | null) {
+export async function ensureShopMeta(
+  sql: Sql,
+  shopId: number,
+  ownerUserId: string,
+  ownerName?: string | null,
+) {
   const rows = await sql<{
     join_code: string | null;
     invite_code: string | null;
@@ -91,9 +105,7 @@ export async function ensureShopMeta(sql: Sql, shopId: number, ownerUserId: stri
   if (!row) return;
   const joinCode = row.join_code || (await uniqueCode(sql, "join_code", 6));
   const inviteCode = row.invite_code || (await uniqueCode(sql, "invite_code", 8));
-  const trialEndsAt =
-    row.trial_ends_at ||
-    new Date(Date.now() + 14 * 24 * 3600_000).toISOString();
+  const trialEndsAt = row.trial_ends_at || new Date(Date.now() + 14 * 24 * 3600_000).toISOString();
   await sql`
     update shops
     set join_code = ${joinCode},
@@ -175,11 +187,39 @@ export async function resolveShop(sql: Sql, userId: string): Promise<ShopContext
   };
 }
 
+/**
+ * Tenant id for shop-data server functions. Enforces the paywall on the server:
+ * a locked (expired or suspended) shop can still reach Shop/Support (which use
+ * resolveShop directly) but not its customer data.
+ */
 export async function uidOf(sql: Sql, userId: string) {
-  return (await resolveShop(sql, userId)).tenantId;
+  const shop = await resolveShop(sql, userId);
+  const access = await shopAccess(sql, shop.shopId, shop.trialEndsAt);
+  if (access.status === "locked") {
+    throw new Error(
+      access.suspended
+        ? "This shop is suspended. Contact Tena support."
+        : "Your plan has ended. Open Shop to renew.",
+    );
+  }
+  return shop.tenantId;
 }
 
 export async function shopAccess(sql: Sql, shopId: number, trialEndsAt: string | null) {
+  const flags = await sql<{ suspended_at: string | null; suspended_reason: string | null }>`
+    select suspended_at, suspended_reason from shops where id = ${shopId} limit 1
+  `;
+  if (flags[0]?.suspended_at) {
+    return {
+      status: "locked" as AccessStatus,
+      plan: null as string | null,
+      periodEnd: null as string | null,
+      trialEndsAt,
+      daysLeft: 0,
+      suspended: true,
+      suspendedReason: flags[0].suspended_reason,
+    };
+  }
   const sub = await sql<{
     plan: string;
     status: string;
@@ -187,9 +227,7 @@ export async function shopAccess(sql: Sql, shopId: number, trialEndsAt: string |
   }>`
     select plan, status, current_period_end from subscriptions where shop_id = ${shopId} limit 1
   `;
-  const periodEnd = sub[0]?.current_period_end
-    ? new Date(sub[0].current_period_end).getTime()
-    : 0;
+  const periodEnd = sub[0]?.current_period_end ? new Date(sub[0].current_period_end).getTime() : 0;
   if (sub[0]?.status === "active" && periodEnd > Date.now()) {
     return {
       status: "active" as AccessStatus,
@@ -197,6 +235,8 @@ export async function shopAccess(sql: Sql, shopId: number, trialEndsAt: string |
       periodEnd: sub[0].current_period_end,
       trialEndsAt,
       daysLeft: Math.max(0, Math.ceil((periodEnd - Date.now()) / 86400000)),
+      suspended: false,
+      suspendedReason: null as string | null,
     };
   }
   const trialEnd = trialEndsAt ? new Date(trialEndsAt).getTime() : 0;
@@ -207,6 +247,8 @@ export async function shopAccess(sql: Sql, shopId: number, trialEndsAt: string |
       periodEnd: trialEndsAt,
       trialEndsAt,
       daysLeft: Math.max(0, Math.ceil((trialEnd - Date.now()) / 86400000)),
+      suspended: false,
+      suspendedReason: null as string | null,
     };
   }
   return {
@@ -215,6 +257,8 @@ export async function shopAccess(sql: Sql, shopId: number, trialEndsAt: string |
     periodEnd: sub[0]?.current_period_end ?? trialEndsAt,
     trialEndsAt,
     daysLeft: 0,
+    suspended: false,
+    suspendedReason: null as string | null,
   };
 }
 
@@ -266,7 +310,7 @@ export const getShopDesk = createServerFn({ method: "GET" })
     }>`
       select id, plan, amount_kes, phone, reference, status, coalesce(method, 'mpesa') as method
       from payments
-      where shop_id = ${shop.shopId} and status = 'pending'
+      where shop_id = ${shop.shopId} and status in ('pending', 'submitted')
       order by created_at desc
       limit 1
     `;
@@ -291,9 +335,12 @@ export const getShopDesk = createServerFn({ method: "GET" })
             phone: pending[0].phone,
             reference: pending[0].reference,
             method: pending[0].method,
+            status: pending[0].status as "pending" | "submitted",
           }
         : null,
       plans: PLANS,
+      billingMode: billingMode(),
+      mpesaPayTo: mpesaPayTo(),
     };
   });
 
@@ -327,9 +374,7 @@ export const joinShopWithInvite = createServerFn({ method: "POST" })
       select id, seeded from shops where user_id = ${context.userId} limit 1
     `;
     if (owns[0] && owns[0].seeded) {
-      throw new Error(
-        "This email already runs a shop. Staff should sign up with their own email.",
-      );
+      throw new Error("This email already runs a shop. Staff should sign up with their own email.");
     }
 
     const target = await sql<{ id: number; name: string }>`
@@ -349,10 +394,21 @@ export const joinShopWithInvite = createServerFn({ method: "POST" })
     return { shopName: target[0].name };
   });
 
-async function activatePlan(sql: Sql, shopId: number, planId: string) {
+/**
+ * Add `months` of paid time. Renewing early stacks on the remaining period
+ * instead of throwing it away.
+ */
+export async function extendPlan(sql: Sql, shopId: number, planId: string, months?: number) {
   const plan = PLANS[planId as PlanId];
-  const months = plan?.months ?? 1;
-  const periodEnd = new Date(Date.now() + months * 30 * 24 * 3600_000).toISOString();
+  const addMonths = months ?? plan?.months ?? 1;
+  const current = await sql<{ status: string; current_period_end: string }>`
+    select status, current_period_end from subscriptions where shop_id = ${shopId} limit 1
+  `;
+  const currentEnd = current[0]?.current_period_end
+    ? new Date(current[0].current_period_end).getTime()
+    : 0;
+  const base = current[0]?.status === "active" && currentEnd > Date.now() ? currentEnd : Date.now();
+  const periodEnd = new Date(base + addMonths * 30 * 24 * 3600_000).toISOString();
   const now = new Date().toISOString();
   await sql`
     insert into subscriptions (shop_id, plan, status, current_period_end, updated_at)
@@ -378,6 +434,12 @@ export const startMpesaCheckout = createServerFn({ method: "POST" })
     const digits = data.phone.replace(/\D/g, "");
     if (digits.length < 9) throw new Error("Enter the M-Pesa number that will pay.");
     const reference = `TENA${randomCode(5)}`;
+    const awaiting = await sql<{ n: number }>`
+      select count(*)::int as n from payments where shop_id = ${shop.shopId} and status = 'submitted'
+    `;
+    if ((awaiting[0]?.n ?? 0) > 0) {
+      throw new Error("Tena is still confirming your last payment.");
+    }
     await sql`update payments set status = 'failed' where shop_id = ${shop.shopId} and status = 'pending'`;
     const rows = await sql<{ id: number }>`
       insert into payments (shop_id, plan, amount_kes, phone, reference, status, method)
@@ -413,9 +475,14 @@ export const confirmMpesaPayment = createServerFn({ method: "POST" })
     if (!pay[0] || pay[0].status !== "pending") {
       throw new Error("Payment not found.");
     }
+    if (billingMode() === "manual") {
+      // The shop says it paid; a Tena admin checks M-Pesa and confirms in /ops.
+      await sql`update payments set status = 'submitted' where id = ${pay[0].id}`;
+      return { ok: true as const, activated: false as const, periodEnd: null };
+    }
     await sql`update payments set status = 'paid' where id = ${pay[0].id}`;
-    const periodEnd = await activatePlan(sql, shop.shopId, pay[0].plan);
-    return { ok: true as const, periodEnd };
+    const periodEnd = await extendPlan(sql, shop.shopId, pay[0].plan);
+    return { ok: true as const, activated: true as const, periodEnd };
   });
 
 export const payWithCard = createServerFn({ method: "POST" })
@@ -425,6 +492,9 @@ export const payWithCard = createServerFn({ method: "POST" })
     const sql = await getSql();
     const shop = await resolveShop(sql, context.userId);
     if (shop.role !== "owner") throw new Error("Only the owner can subscribe.");
+    if (billingMode() !== "demo") {
+      throw new Error("Card payments are coming soon. Pay with M-Pesa for now.");
+    }
     const plan = PLANS[data.plan];
     if (!plan) throw new Error("Pick a plan.");
     const reference = `CARD${randomCode(5)}`;
@@ -434,7 +504,7 @@ export const payWithCard = createServerFn({ method: "POST" })
       values (${shop.shopId}, ${plan.id}, ${plan.kes}, ${null}, ${reference}, ${"paid"}, ${"card"})
       returning id
     `;
-    const periodEnd = await activatePlan(sql, shop.shopId, plan.id);
+    const periodEnd = await extendPlan(sql, shop.shopId, plan.id);
     return { ok: true as const, paymentId: rows[0].id, periodEnd, reference };
   });
 
@@ -445,6 +515,7 @@ export const previewLock = createServerFn({ method: "POST" })
     const sql = await getSql();
     const shop = await resolveShop(sql, context.userId);
     if (shop.role !== "owner") throw new Error("Only the owner can change billing.");
+    if (billingMode() !== "demo") throw new Error("Not available.");
     if (data.locked) {
       await sql`
         update shops set trial_ends_at = ${new Date(Date.now() - 60_000).toISOString()}

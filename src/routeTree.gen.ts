@@ -11,9 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OpsRouteImport } from './routes/ops'
 import { Route as PlaybookRouteImport } from './routes/playbook'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppCaptureRouteImport } from './routes/app/capture'
 import { Route as AppCoachRouteImport } from './routes/app/coach'
@@ -22,12 +24,18 @@ import { Route as AppLoyaltyRouteImport } from './routes/app/loyalty'
 import { Route as AppPeopleRouteImport } from './routes/app/people'
 import { Route as AppShopRouteImport } from './routes/app/shop'
 import { Route as AppSupportRouteImport } from './routes/app/support'
+import { Route as OpsIndexRouteImport } from './routes/ops.index'
+import { Route as OpsActivityRouteImport } from './routes/ops.activity'
+import { Route as OpsSupportRouteImport } from './routes/ops.support'
+import { Route as OpsTeamRouteImport } from './routes/ops.team'
 import { Route as SCodeRouteImport } from './routes/s.$code'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AppInboxIndexRouteImport } from './routes/app/inbox.index'
 import { Route as AppInboxIdRouteImport } from './routes/app/inbox.$id'
 import { Route as AppPeopleIndexRouteImport } from './routes/app/people.index'
 import { Route as AppPeopleIdRouteImport } from './routes/app/people.$id'
+import { Route as OpsShopsIndexRouteImport } from './routes/ops.shops.index'
+import { Route as OpsShopsIdRouteImport } from './routes/ops.shops.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -37,6 +45,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -52,6 +65,11 @@ const OpsRoute = OpsRouteImport.update({
 const PlaybookRoute = PlaybookRouteImport.update({
   id: '/playbook',
   path: '/playbook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -94,6 +112,26 @@ const AppSupportRoute = AppSupportRouteImport.update({
   path: '/support',
   getParentRoute: () => AppRoute,
 } as any)
+const OpsIndexRoute = OpsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OpsRoute,
+} as any)
+const OpsActivityRoute = OpsActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => OpsRoute,
+} as any)
+const OpsSupportRoute = OpsSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => OpsRoute,
+} as any)
+const OpsTeamRoute = OpsTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => OpsRoute,
+} as any)
 const SCodeRoute = SCodeRouteImport.update({
   id: '/s/$code',
   path: '/s/$code',
@@ -124,13 +162,25 @@ const AppPeopleIdRoute = AppPeopleIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppPeopleRoute,
 } as any)
+const OpsShopsIndexRoute = OpsShopsIndexRouteImport.update({
+  id: '/shops/',
+  path: '/shops/',
+  getParentRoute: () => OpsRoute,
+} as any)
+const OpsShopsIdRoute = OpsShopsIdRouteImport.update({
+  id: '/shops/$id',
+  path: '/shops/$id',
+  getParentRoute: () => OpsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
-  '/ops': typeof OpsRoute
+  '/ops': typeof OpsRouteWithChildren
   '/playbook': typeof PlaybookRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/app/capture': typeof AppCaptureRoute
   '/app/coach': typeof AppCoachRoute
   '/app/inbox': typeof AppInboxRouteWithChildren
@@ -138,39 +188,54 @@ export interface FileRoutesByFullPath {
   '/app/people': typeof AppPeopleRouteWithChildren
   '/app/shop': typeof AppShopRoute
   '/app/support': typeof AppSupportRoute
+  '/ops/activity': typeof OpsActivityRoute
+  '/ops/support': typeof OpsSupportRoute
+  '/ops/team': typeof OpsTeamRoute
   '/s/$code': typeof SCodeRoute
   '/app/': typeof AppIndexRoute
+  '/ops/': typeof OpsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/app/inbox/$id': typeof AppInboxIdRoute
   '/app/people/$id': typeof AppPeopleIdRoute
+  '/ops/shops/$id': typeof OpsShopsIdRoute
   '/app/inbox/': typeof AppInboxIndexRoute
   '/app/people/': typeof AppPeopleIndexRoute
+  '/ops/shops/': typeof OpsShopsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
-  '/ops': typeof OpsRoute
   '/playbook': typeof PlaybookRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/app/capture': typeof AppCaptureRoute
   '/app/coach': typeof AppCoachRoute
   '/app/loyalty': typeof AppLoyaltyRoute
   '/app/shop': typeof AppShopRoute
   '/app/support': typeof AppSupportRoute
+  '/ops/activity': typeof OpsActivityRoute
+  '/ops/support': typeof OpsSupportRoute
+  '/ops/team': typeof OpsTeamRoute
   '/s/$code': typeof SCodeRoute
   '/app': typeof AppIndexRoute
+  '/ops': typeof OpsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/app/inbox/$id': typeof AppInboxIdRoute
   '/app/people/$id': typeof AppPeopleIdRoute
+  '/ops/shops/$id': typeof OpsShopsIdRoute
   '/app/inbox': typeof AppInboxIndexRoute
   '/app/people': typeof AppPeopleIndexRoute
+  '/ops/shops': typeof OpsShopsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
-  '/ops': typeof OpsRoute
+  '/ops': typeof OpsRouteWithChildren
   '/playbook': typeof PlaybookRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/app/capture': typeof AppCaptureRoute
   '/app/coach': typeof AppCoachRoute
   '/app/inbox': typeof AppInboxRouteWithChildren
@@ -178,22 +243,30 @@ export interface FileRoutesById {
   '/app/people': typeof AppPeopleRouteWithChildren
   '/app/shop': typeof AppShopRoute
   '/app/support': typeof AppSupportRoute
+  '/ops/activity': typeof OpsActivityRoute
+  '/ops/support': typeof OpsSupportRoute
+  '/ops/team': typeof OpsTeamRoute
   '/s/$code': typeof SCodeRoute
   '/app/': typeof AppIndexRoute
+  '/ops/': typeof OpsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/app/inbox/$id': typeof AppInboxIdRoute
   '/app/people/$id': typeof AppPeopleIdRoute
+  '/ops/shops/$id': typeof OpsShopsIdRoute
   '/app/inbox/': typeof AppInboxIndexRoute
   '/app/people/': typeof AppPeopleIndexRoute
+  '/ops/shops/': typeof OpsShopsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/app'
+    | '/forgot-password'
     | '/login'
     | '/ops'
     | '/playbook'
+    | '/reset-password'
     | '/app/capture'
     | '/app/coach'
     | '/app/inbox'
@@ -201,38 +274,53 @@ export interface FileRouteTypes {
     | '/app/people'
     | '/app/shop'
     | '/app/support'
+    | '/ops/activity'
+    | '/ops/support'
+    | '/ops/team'
     | '/s/$code'
     | '/app/'
+    | '/ops/'
     | '/api/auth/$'
     | '/app/inbox/$id'
     | '/app/people/$id'
+    | '/ops/shops/$id'
     | '/app/inbox/'
     | '/app/people/'
+    | '/ops/shops/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/forgot-password'
     | '/login'
-    | '/ops'
     | '/playbook'
+    | '/reset-password'
     | '/app/capture'
     | '/app/coach'
     | '/app/loyalty'
     | '/app/shop'
     | '/app/support'
+    | '/ops/activity'
+    | '/ops/support'
+    | '/ops/team'
     | '/s/$code'
     | '/app'
+    | '/ops'
     | '/api/auth/$'
     | '/app/inbox/$id'
     | '/app/people/$id'
+    | '/ops/shops/$id'
     | '/app/inbox'
     | '/app/people'
+    | '/ops/shops'
   id:
     | '__root__'
     | '/'
     | '/app'
+    | '/forgot-password'
     | '/login'
     | '/ops'
     | '/playbook'
+    | '/reset-password'
     | '/app/capture'
     | '/app/coach'
     | '/app/inbox'
@@ -240,21 +328,29 @@ export interface FileRouteTypes {
     | '/app/people'
     | '/app/shop'
     | '/app/support'
+    | '/ops/activity'
+    | '/ops/support'
+    | '/ops/team'
     | '/s/$code'
     | '/app/'
+    | '/ops/'
     | '/api/auth/$'
     | '/app/inbox/$id'
     | '/app/people/$id'
+    | '/ops/shops/$id'
     | '/app/inbox/'
     | '/app/people/'
+    | '/ops/shops/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
-  OpsRoute: typeof OpsRoute
+  OpsRoute: typeof OpsRouteWithChildren
   PlaybookRoute: typeof PlaybookRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SCodeRoute: typeof SCodeRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -273,6 +369,13 @@ declare module '@tanstack/react-router' {
       path: '/app'
       fullPath: '/app'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -294,6 +397,13 @@ declare module '@tanstack/react-router' {
       path: '/playbook'
       fullPath: '/playbook'
       preLoaderRoute: typeof PlaybookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/': {
@@ -352,6 +462,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSupportRouteImport
       parentRoute: typeof AppRoute
     }
+    '/ops/': {
+      id: '/ops/'
+      path: '/'
+      fullPath: '/ops/'
+      preLoaderRoute: typeof OpsIndexRouteImport
+      parentRoute: typeof OpsRoute
+    }
+    '/ops/activity': {
+      id: '/ops/activity'
+      path: '/activity'
+      fullPath: '/ops/activity'
+      preLoaderRoute: typeof OpsActivityRouteImport
+      parentRoute: typeof OpsRoute
+    }
+    '/ops/support': {
+      id: '/ops/support'
+      path: '/support'
+      fullPath: '/ops/support'
+      preLoaderRoute: typeof OpsSupportRouteImport
+      parentRoute: typeof OpsRoute
+    }
+    '/ops/team': {
+      id: '/ops/team'
+      path: '/team'
+      fullPath: '/ops/team'
+      preLoaderRoute: typeof OpsTeamRouteImport
+      parentRoute: typeof OpsRoute
+    }
     '/s/$code': {
       id: '/s/$code'
       path: '/s/$code'
@@ -393,6 +531,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/people/$id'
       preLoaderRoute: typeof AppPeopleIdRouteImport
       parentRoute: typeof AppPeopleRoute
+    }
+    '/ops/shops/': {
+      id: '/ops/shops/'
+      path: '/shops'
+      fullPath: '/ops/shops/'
+      preLoaderRoute: typeof OpsShopsIndexRouteImport
+      parentRoute: typeof OpsRoute
+    }
+    '/ops/shops/$id': {
+      id: '/ops/shops/$id'
+      path: '/shops/$id'
+      fullPath: '/ops/shops/$id'
+      preLoaderRoute: typeof OpsShopsIdRouteImport
+      parentRoute: typeof OpsRoute
     }
   }
 }
@@ -449,12 +601,34 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface OpsRouteChildren {
+  OpsActivityRoute: typeof OpsActivityRoute
+  OpsSupportRoute: typeof OpsSupportRoute
+  OpsTeamRoute: typeof OpsTeamRoute
+  OpsIndexRoute: typeof OpsIndexRoute
+  OpsShopsIdRoute: typeof OpsShopsIdRoute
+  OpsShopsIndexRoute: typeof OpsShopsIndexRoute
+}
+
+const OpsRouteChildren: OpsRouteChildren = {
+  OpsActivityRoute: OpsActivityRoute,
+  OpsSupportRoute: OpsSupportRoute,
+  OpsTeamRoute: OpsTeamRoute,
+  OpsIndexRoute: OpsIndexRoute,
+  OpsShopsIdRoute: OpsShopsIdRoute,
+  OpsShopsIndexRoute: OpsShopsIndexRoute,
+}
+
+const OpsRouteWithChildren = OpsRoute._addFileChildren(OpsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
-  OpsRoute: OpsRoute,
+  OpsRoute: OpsRouteWithChildren,
   PlaybookRoute: PlaybookRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SCodeRoute: SCodeRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

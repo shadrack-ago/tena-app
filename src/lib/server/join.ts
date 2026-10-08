@@ -22,9 +22,7 @@ export const getJoinShop = createServerFn({ method: "GET" })
   });
 
 export const submitJoinForm = createServerFn({ method: "POST" })
-  .validator(
-    (input: { code: string; name: string; phone: string; item: string }) => input,
-  )
+  .validator((input: { code: string; name: string; phone: string; item: string }) => input)
   .handler(async ({ data }) => {
     const sql = await getSql();
     const code = data.code.trim().toUpperCase();
