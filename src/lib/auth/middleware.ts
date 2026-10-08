@@ -1,4 +1,5 @@
 import { createMiddleware } from "@tanstack/react-start";
+import { getBearerToken } from "./bearer";
 
 /**
  * Auth middleware for server functions — the standard way to get the caller's
@@ -30,7 +31,6 @@ export const authMiddleware = createMiddleware({ type: "function" })
     // Live preview (partitioned iframe): the session rides a bearer token, not a
     // cookie, so forward it to the server. Null when deployed (cookie auth), so
     // this is a no-op there.
-    const { getBearerToken } = await import("./client");
     return next({ sendContext: { bearerToken: getBearerToken() ?? undefined } });
   })
   .server(async ({ next, context }) => {

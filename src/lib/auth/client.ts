@@ -1,6 +1,7 @@
 import { createAuthClient } from "better-auth/react";
 import { runPreSignInSignOut, runSignOut } from "../../../scripts/sign-out-plan.mjs";
 import { SOCIAL_PROVIDERS, type SocialProvider } from "./providers";
+import { getBearerToken, setBearerToken } from "./bearer";
 
 /**
  * Better Auth client for this React SPA (browser-side).
@@ -36,35 +37,13 @@ export const authClient = createAuthClient({
 export const authEnabled = import.meta.env.VITE_AUTH_ENABLED !== "false";
 
 /** The upstream providers to render sign-in buttons for. */
-export { SOCIAL_PROVIDERS };
+export { SOCIAL_PROVIDERS, getBearerToken };
 
 // ── Live-preview bearer token ────────────────────────────────────────────────
 // The embedded preview iframe has partitioned cookies, so we keep the session's
 // bearer token in sessionStorage and attach it to every Better Auth request (and
 // to server functions, via `@/lib/auth/middleware`). Empty everywhere except the
 // preview after a popup sign-in, so the cookie path is untouched elsewhere.
-const BEARER_KEY = "grok-auth.bearer-token";
-
-/** The stored preview bearer token, or null. */
-export function getBearerToken(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return window.sessionStorage.getItem(BEARER_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function setBearerToken(token: string | null): void {
-  if (typeof window === "undefined") return;
-  try {
-    if (token) window.sessionStorage.setItem(BEARER_KEY, token);
-    else window.sessionStorage.removeItem(BEARER_KEY);
-  } catch {
-    /* storage unavailable — ignore */
-  }
-}
-
 /**
  * The sandbox live preview runs this app inside an iframe on a `*.grok-sandbox.com`
  * host, where a full-page redirect to the broker can't work — so sign-in uses a
