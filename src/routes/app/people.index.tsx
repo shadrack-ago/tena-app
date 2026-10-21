@@ -60,7 +60,9 @@ function People() {
                   {c.saleCount > 0 ? ` · ${formatKes(c.totalSpent)}` : ""}
                 </span>
               </span>
-              <span className="text-xs tabular-nums text-primary">{c.stampCount} stamps</span>
+              <span className="text-xs tabular-nums text-primary">
+                {c.stampCount} stamp{c.stampCount === 1 ? "" : "s"}
+              </span>
             </Link>
           </li>
         ))}

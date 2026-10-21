@@ -75,7 +75,59 @@ function Shops() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+      {/* Phones: one card per business. */}
+      <ul className="space-y-3 md:hidden">
+        {q.isLoading && <li className="h-24 animate-pulse rounded-2xl bg-secondary" />}
+        {rows.map((s) => (
+          <li key={s.id}>
+            <Link
+              to="/ops/shops/$id"
+              params={{ id: String(s.id) }}
+              className="block rounded-2xl border border-border bg-card p-4 active:bg-background"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold">{s.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {[s.ownerName, s.ownerEmail].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+                <AccessBadge access={s.access} />
+              </div>
+              <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <dt className="text-muted-foreground">Customers</dt>
+                  <dd className="font-semibold tabular-nums">{s.people}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Sales · 30d</dt>
+                  <dd className="font-semibold tabular-nums">{formatKes(s.sales30dKes)}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Overdue</dt>
+                  <dd className="font-semibold tabular-nums">{s.dueNow}</dd>
+                </div>
+              </dl>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {s.access === "active" && s.periodEnd
+                  ? `${s.plan} · until ${fmtDate(s.periodEnd)}`
+                  : s.access === "trial" && s.trialEndsAt
+                    ? `Trial until ${fmtDate(s.trialEndsAt)}`
+                    : `Joined ${fmtDate(s.createdAt)}`}
+                {s.lastActive &&
+                  ` · active ${formatDistanceToNowStrict(new Date(s.lastActive))} ago`}
+              </p>
+            </Link>
+          </li>
+        ))}
+        {q.data && rows.length === 0 && (
+          <li className="py-8 text-center text-sm text-muted-foreground">
+            {q.data.length === 0 ? "No businesses yet." : "No businesses match."}
+          </li>
+        )}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-2xl border border-border bg-card md:block">
         <table className="w-full min-w-[56rem] text-left text-sm">
           <thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
             <tr>

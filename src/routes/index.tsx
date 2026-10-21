@@ -450,7 +450,7 @@ function Features() {
         <SectionTitle>A sales assistant that lives where your customers already are.</SectionTitle>
       </div>
 
-      <div className="mt-14 grid gap-4 md:grid-cols-6">
+      <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-6 [&>*]:min-w-0">
         {/* Today list */}
         <div className="rounded-3xl border border-foreground/5 bg-card p-7 md:col-span-4">
           <FeatureHead

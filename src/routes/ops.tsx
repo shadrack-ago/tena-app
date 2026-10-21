@@ -107,7 +107,7 @@ function OpsLayout() {
           </div>
         </div>
         <nav
-          className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-2 md:px-6"
+          className="mx-auto flex max-w-6xl gap-0 px-1 sm:gap-1 sm:px-2 md:px-6"
           aria-label="Tena HQ"
         >
           {NAV.map((n) => (
@@ -115,7 +115,7 @@ function OpsLayout() {
               key={n.to}
               to={n.to}
               activeOptions={{ exact: n.exact }}
-              className="flex shrink-0 items-center gap-1.5 border-b-2 border-transparent px-3 py-3 text-sm text-muted-foreground hover:text-foreground"
+              className="flex min-w-0 flex-1 flex-col items-center gap-1 border-b-2 border-transparent px-1 py-2 text-[11px] text-muted-foreground hover:text-foreground sm:flex-none sm:flex-row sm:gap-1.5 sm:px-3 sm:py-3 sm:text-sm"
               activeProps={{ className: "!border-primary !text-foreground font-medium" }}
             >
               <n.icon className="size-4" />
