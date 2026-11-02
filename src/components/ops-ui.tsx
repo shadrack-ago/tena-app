@@ -201,7 +201,7 @@ export function ColumnChart({
 }
 
 const ACTIONS: Record<string, string> = {
-  "admin.joined": "Joined Tena HQ",
+  "admin.joined": "Joined Uzatena HQ",
   "admin.invited": "Invited an admin",
   "admin.invite_revoked": "Revoked an admin invite",
   "admin.removed": "Removed an admin",

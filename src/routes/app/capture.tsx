@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, dueHoursFor, whatsappUrl } from "@/lib/utils";
+import { FollowUpDatePicker, dueAtFromHours } from "@/components/follow-up-date";
 
 export const Route = createFileRoute("/app/capture")({ component: Capture });
 
@@ -38,14 +39,23 @@ function Capture() {
   const qc = useQueryClient();
   const [note, setNote] = useState("");
   const [parsed, setParsed] = useState<Parsed | null>(null);
+  // Suggested from the follow-up type until the owner picks a date themselves.
+  const [dueAt, setDueAt] = useState(() => dueAtFromHours(0));
+  const [dueTouched, setDueTouched] = useState(false);
+  const suggest = (kind: string, bought: boolean) => {
+    if (!dueTouched) setDueAt(dueAtFromHours(dueHoursFor(kind, bought)));
+  };
 
   const parseMut = useMutation({
     mutationFn: () => captureCustomer({ data: { note } }),
-    onSuccess: (res) =>
+    onSuccess: (res) => {
       setParsed({
         ...res,
         bought: res.bought === true,
-      }),
+      });
+      setDueTouched(false);
+      setDueAt(dueAtFromHours(dueHoursFor(res.followUpKind, res.bought === true)));
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -68,11 +78,12 @@ function Capture() {
           amountKes: bought ? parsed.amountKes : null,
           followUpKind: kind,
           dueHours: dueHoursFor(kind, bought),
+          dueAt,
         },
       });
     },
     onSuccess: () => {
-      toast.success("Saved — on Today");
+      toast.success("Saved. They’ll be on your Today list on the day you picked.");
       setParsed(null);
       setNote("");
       void qc.invalidateQueries();
@@ -104,7 +115,7 @@ function Capture() {
           onChange={(e) => setNote(e.target.value)}
         />
         <p className="mt-2 text-xs text-muted-foreground">
-          You can add the piece after the number — Tena puts that in “what they wanted”, not in the name.
+          You can add the piece after the number — Uzatena puts that in “what they wanted”, not in the name.
         </p>
         <Button className="mt-3" type="submit" disabled={parseMut.isPending || !note.trim()}>
           {parseMut.isPending ? "Reading…" : "Read note"}
@@ -149,16 +160,12 @@ function Capture() {
                     ? "border-primary bg-accent text-accent-foreground"
                     : "border-border bg-card text-muted-foreground",
                 )}
-                onClick={() =>
-                  setParsed({
-                    ...parsed,
-                    bought: false,
-                    followUpKind:
-                      parsed.followUpKind === "post_purchase"
-                        ? "enquiry"
-                        : parsed.followUpKind,
-                  })
-                }
+                onClick={() => {
+                  const kind =
+                    parsed.followUpKind === "post_purchase" ? "enquiry" : parsed.followUpKind;
+                  setParsed({ ...parsed, bought: false, followUpKind: kind });
+                  suggest(kind, false);
+                }}
               >
                 Not yet
               </button>
@@ -170,13 +177,10 @@ function Capture() {
                     ? "border-primary bg-accent text-accent-foreground"
                     : "border-border bg-card text-muted-foreground",
                 )}
-                onClick={() =>
-                  setParsed({
-                    ...parsed,
-                    bought: true,
-                    followUpKind: "post_purchase",
-                  })
-                }
+                onClick={() => {
+                  setParsed({ ...parsed, bought: true, followUpKind: "post_purchase" });
+                  suggest("post_purchase", true);
+                }}
               >
                 They paid
               </button>
@@ -184,7 +188,7 @@ function Capture() {
             <p className="text-xs text-muted-foreground">
               {parsed.bought
                 ? "Amount is enough. The piece is optional — they may have bought more than one."
-                : "No sale. Tena only needs who they are. What they wanted is optional."}
+                : "No sale. Uzatena only needs who they are. What they wanted is optional."}
             </p>
           </fieldset>
 
@@ -211,6 +215,15 @@ function Capture() {
               />
             </>
           )}
+
+          <FollowUpDatePicker
+            label={parsed.bought ? "Check in with them on" : "Follow up on"}
+            value={dueAt}
+            onChange={(iso) => {
+              setDueTouched(true);
+              setDueAt(iso);
+            }}
+          />
 
           <Field
             label="Follow-up message"

@@ -45,11 +45,11 @@ export function passwordResetEmail(to: string, name: string, url: string): Email
   const first = name.split(" ")[0] || "there";
   return {
     to,
-    subject: "Reset your Tena password",
-    text: `Hi ${first},\n\nReset your Tena password here (link works for 1 hour):\n${url}\n\nIf you didn't ask for this, you can ignore this email.`,
+    subject: "Reset your Uzatena password",
+    text: `Hi ${first},\n\nReset your Uzatena password here (link works for 1 hour):\n${url}\n\nIf you didn't ask for this, you can ignore this email.`,
     html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1915">
 <p>Hi ${escapeHtml(first)},</p>
-<p>Tap the button to choose a new Tena password. The link works for 1 hour.</p>
+<p>Tap the button to choose a new Uzatena password. The link works for 1 hour.</p>
 <p><a href="${escapeHtml(url)}" style="display:inline-block;background:#0d5c59;color:#fffefb;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:600">Reset password</a></p>
 <p style="color:#6b645b;font-size:13px">If you didn't ask for this, you can ignore this email.</p>
 </div>`,
@@ -60,11 +60,11 @@ export function adminInviteEmail(to: string, invitedBy: string, role: string, ur
   const roleLabel = role === "owner" ? "an owner" : "a support admin";
   return {
     to,
-    subject: "You're invited to Tena HQ",
-    text: `${invitedBy} invited you to Tena HQ as ${roleLabel}.\n\nCreate your account (or sign in) with ${to}, then open Tena HQ:\n${url}`,
+    subject: "You're invited to Uzatena HQ",
+    text: `${invitedBy} invited you to Uzatena HQ as ${roleLabel}.\n\nCreate your account (or sign in) with ${to}, then open Uzatena HQ:\n${url}`,
     html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1915">
-<p><strong>${escapeHtml(invitedBy)}</strong> invited you to Tena HQ as ${roleLabel}.</p>
-<p>Create your account (or sign in) with <strong>${escapeHtml(to)}</strong>, then open Tena HQ.</p>
+<p><strong>${escapeHtml(invitedBy)}</strong> invited you to Uzatena HQ as ${roleLabel}.</p>
+<p>Create your account (or sign in) with <strong>${escapeHtml(to)}</strong>, then open Uzatena HQ.</p>
 <p><a href="${escapeHtml(url)}" style="display:inline-block;background:#0d5c59;color:#fffefb;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:600">Accept invite</a></p>
 </div>`,
   };

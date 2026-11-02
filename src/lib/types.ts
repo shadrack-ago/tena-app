@@ -88,7 +88,11 @@ export type FeedbackRow = {
 export type Dashboard = {
   shop: Shop;
   dueFollowUps: FollowUp[];
+  /** Follow-ups scheduled after today, soonest first. */
+  upcoming: FollowUp[];
   loyaltyReady: Customer[];
+  /** Sample customers still in the shop (removable from Today). */
+  demoCount: number;
   stats: {
     people: number;
     dueToday: number;

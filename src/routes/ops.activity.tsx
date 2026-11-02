@@ -11,7 +11,7 @@ function ActivityLog() {
     <div className="space-y-6">
       <PageHeader
         title="Activity"
-        sub="Every change made from Tena HQ: who, what and when. Latest 200."
+        sub="Every change made from Uzatena HQ: who, what and when. Latest 200."
       />
       <Card>
         {q.isLoading ? (

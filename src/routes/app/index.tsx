@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { formatKes, formatPhone } from "@/lib/utils";
-import { getDashboard } from "@/lib/server/tena";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { formatKes, formatPhone, kindLabel } from "@/lib/utils";
+import { clearDemoData, getDashboard } from "@/lib/server/tena";
 import { FollowUpCard } from "@/components/follow-up-card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -48,16 +50,13 @@ function Today() {
         <Stat label="This week" value={formatKes(d.stats.salesThisWeekKes)} />
       </div>
 
-      {d.shop.seeded && (
-        <p className="mt-4 rounded-lg border border-border bg-accent/60 px-3 py-2 text-sm text-accent-foreground">
-          Sample boutique loaded so you can try Tena. Capture your own people anytime.
-        </p>
-      )}
+      {d.demoCount > 0 && <DemoNotice count={d.demoCount} />}
 
       <section className="mt-8">
         <h2 className="font-display text-xl font-semibold">Follow-ups</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          This is the reminder. Send before you close. Tena does not ping you on WhatsApp — open Today, send, or snooze.
+          This is the reminder. Send before you close. Uzatena does not ping you on WhatsApp — open
+          Today, send, or reschedule.
         </p>
         <div className="mt-4 space-y-3">
           {d.dueFollowUps.length === 0 ? (
@@ -69,9 +68,42 @@ function Today() {
           )}
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Timing: enquiry now · hold later today · payday next morning · after a sale tomorrow · quiet customers in 14 days. One message each — skip or snooze 2 days if it can wait.
+          Timing: enquiry now · hold later today · payday next morning · after a sale tomorrow ·
+          quiet customers in 14 days. You can pick any date when you capture someone, and reschedule
+          anytime.
         </p>
       </section>
+
+      {d.upcoming.length > 0 && (
+        <section className="mt-10">
+          <h2 className="font-display text-xl font-semibold">Coming up</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Scheduled for later. They move to the list above on their day.
+          </p>
+          <ul className="mt-3 divide-y divide-border rounded-xl border border-border bg-card">
+            {d.upcoming.map((f) => (
+              <li key={f.id}>
+                <Link
+                  to="/app/people/$id"
+                  params={{ id: String(f.customerId) }}
+                  className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-background"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{f.customerName}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {kindLabel(f.kind)}
+                      {f.reason ? ` · ${f.reason}` : ""}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-xs font-medium text-primary">
+                    {format(new Date(f.dueAt), "EEE d MMM")}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {d.loyaltyReady.length > 0 && (
         <section className="mt-10">
@@ -122,6 +154,37 @@ function PageSkeleton() {
         ))}
       </div>
       <div className="h-48 animate-pulse rounded-xl bg-secondary" />
+    </div>
+  );
+}
+
+function DemoNotice({ count }: { count: number }) {
+  const qc = useQueryClient();
+  const mut = useMutation({
+    mutationFn: () => clearDemoData(),
+    onSuccess: () => {
+      toast.success("Demo data removed");
+      void qc.invalidateQueries();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sun/40 bg-sun-tint px-4 py-3 text-sm">
+      <p>
+        <span className="font-semibold">This is demo data.</span> The {count} customer
+        {count === 1 ? "" : "s"} marked “(demo)” are samples to show how Uzatena works. Capture your
+        own anytime.
+      </p>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={mut.isPending}
+        onClick={() => {
+          if (confirm("Remove the demo customers, their chats and follow-ups?")) mut.mutate();
+        }}
+      >
+        {mut.isPending ? "Removing…" : "Remove demo data"}
+      </Button>
     </div>
   );
 }

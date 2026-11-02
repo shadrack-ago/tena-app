@@ -35,7 +35,7 @@ function OpsLayout() {
   const claimMut = useMutation({
     mutationFn: () => claimOps(),
     onSuccess: () => {
-      toast.success("Welcome to Tena HQ");
+      toast.success("Welcome to Uzatena HQ");
       void qc.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -56,13 +56,13 @@ function OpsLayout() {
       return (
         <Centered>
           <Logo />
-          <h1 className="mt-6 font-display text-3xl font-bold">Open Tena HQ</h1>
+          <h1 className="mt-6 font-display text-3xl font-bold">Open Uzatena HQ</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            {s.email} is on the admin list. Tena HQ shows every business, payment and support
+            {s.email} is on the admin list. Uzatena HQ shows every business, payment and support
             thread.
           </p>
           <Button className="mt-6" onClick={() => claimMut.mutate()} disabled={claimMut.isPending}>
-            {claimMut.isPending ? "Opening…" : "Open Tena HQ"}
+            {claimMut.isPending ? "Opening…" : "Open Uzatena HQ"}
           </Button>
         </Centered>
       );
@@ -71,7 +71,7 @@ function OpsLayout() {
       <Centered>
         <p className="font-display text-2xl font-bold">Admins only</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          {s?.email ?? "This account"} isn’t a Tena admin. Ask a Tena owner to invite you from Tena
+          {s?.email ?? "This account"} isn’t a Uzatena admin. Ask a Uzatena owner to invite you from Uzatena
           HQ → Team.
         </p>
         <Button className="mt-5" asChild>
@@ -108,7 +108,7 @@ function OpsLayout() {
         </div>
         <nav
           className="mx-auto flex max-w-6xl gap-0 px-1 sm:gap-1 sm:px-2 md:px-6"
-          aria-label="Tena HQ"
+          aria-label="Uzatena HQ"
         >
           {NAV.map((n) => (
             <Link

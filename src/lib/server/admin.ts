@@ -6,7 +6,7 @@ import { appUrl } from "./app-url";
 import { adminInviteEmail, sendEmail } from "./email";
 
 /**
- * Tena HQ (/ops) — the platform operator's controls over every shop.
+ * Uzatena HQ (/ops) — the platform operator's controls over every shop.
  *
  * Roles:
  *   owner   — everything: billing, suspensions, admin team.
@@ -35,7 +35,7 @@ export async function userLabel(sql: Sql, userId: string) {
   const rows = await sql<{ name: string; email: string }>`
     select name, email from "user" where id = ${userId} limit 1
   `;
-  return { name: rows[0]?.name || "Tena", email: rows[0]?.email || null };
+  return { name: rows[0]?.name || "Uzatena", email: rows[0]?.email || null };
 }
 
 async function findAdmin(sql: Sql, userId: string): Promise<Admin | null> {
@@ -50,9 +50,9 @@ async function findAdmin(sql: Sql, userId: string): Promise<Admin | null> {
 
 export async function requireAdmin(sql: Sql, userId: string, need?: "owner"): Promise<Admin> {
   const admin = await findAdmin(sql, userId);
-  if (!admin) throw new Error("Not a Tena admin.");
+  if (!admin) throw new Error("Not a Uzatena admin.");
   if (need === "owner" && admin.role !== "owner") {
-    throw new Error("Only Tena owners can do that.");
+    throw new Error("Only Uzatena owners can do that.");
   }
   return admin;
 }
@@ -151,7 +151,7 @@ export const claimOps = createServerFn({ method: "POST" })
       : invite[0]?.role === "owner"
         ? "owner"
         : "support";
-    if (!isEnvOwner(email) && !invite[0]) throw new Error("This email is not a Tena admin.");
+    if (!isEnvOwner(email) && !invite[0]) throw new Error("This email is not a Uzatena admin.");
     await sql`
       insert into platform_admins (user_id, email, name, role, invited_by)
       values (${context.userId}, ${who.email}, ${who.name}, ${role}, ${invite[0]?.invited_by ?? null})
@@ -675,7 +675,7 @@ export const sendOwnerReset = createServerFn({ method: "POST" })
 
 /* ── Admin team (owners) ─────────────────────────────────────────────────── */
 
-/** Sign-up link that pre-fills the invited email and lands on Tena HQ. */
+/** Sign-up link that pre-fills the invited email and lands on Uzatena HQ. */
 function adminInviteLink(email: string) {
   return `${appUrl()}/login?${new URLSearchParams({ next: "/ops", email }).toString()}`;
 }
@@ -744,7 +744,7 @@ export const inviteAdmin = createServerFn({ method: "POST" })
     `;
     const link = adminInviteLink(email);
     const emailed = await sendEmail(
-      adminInviteEmail(email, admin.name || admin.email || "Tena", role, link),
+      adminInviteEmail(email, admin.name || admin.email || "Uzatena", role, link),
     );
     await audit(sql, admin, "admin.invited", null, { email, role, emailed });
     return { ok: true as const, link, emailed };

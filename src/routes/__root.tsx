@@ -13,7 +13,7 @@ import { makeQueryClient } from "@/lib/query";
 import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "Tena";
+const APP_NAME = "Uzatena";
 
 const fetchSessionUser = createServerFn({ method: "GET" }).handler(async () => {
   const { getSessionUser } = await import("@/lib/auth/verify.server");
@@ -31,7 +31,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Tena helps Kenyan retail shops follow up, retain customers, and sell again — on WhatsApp.",
+          "Uzatena helps Kenyan retail shops follow up, retain customers, and sell again — on WhatsApp.",
       },
       { name: "theme-color", content: "#0D5C59" },
     ],

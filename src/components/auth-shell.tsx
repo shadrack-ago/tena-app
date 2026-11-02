@@ -18,7 +18,8 @@ export function AuthShell({ children }: { children: ReactNode }) {
             Come again. That is the whole business.
           </p>
           <p className="mt-4 max-w-sm text-muted-foreground">
-            Create a shop and a sample boutique is loaded so you can try follow-ups today.
+            Create your shop. Two demo customers show you how follow-ups work, and you can remove
+            them anytime.
           </p>
         </div>
 

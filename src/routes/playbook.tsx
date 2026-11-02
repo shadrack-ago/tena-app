@@ -28,7 +28,7 @@ function Playbook() {
         <H>What we are building</H>
         <p className="mt-4 text-base leading-relaxed">
           A way for retail SMEs in Kenya to sell more — after marketing has already done its work.
-          The shop has walk-in clients or people from social media. Tena handles the people who
+          The shop has walk-in clients or people from social media. Uzatena handles the people who
           bought, and the people who said they would buy later.
         </p>
         <p className="mt-4 text-base leading-relaxed">
@@ -43,8 +43,8 @@ function Playbook() {
           </li>
           <li>
             <strong>The product lives on WhatsApp.</strong> That is where Kenyan shops already sell.
-            A dashboard they must remember to open will lose to the chat they already live in. Tena
-            drafts and queues; the owner approves.
+            A dashboard they must remember to open will lose to the chat they already live in.
+            Uzatena drafts and queues; the owner approves.
           </li>
           <li>
             <strong>AI is the worker, not the headline.</strong> It extracts the customer from a
@@ -65,24 +65,6 @@ function Playbook() {
           than one answered at 9pm — and in Kenya the other shop is next door, on the same chat.
         </p>
 
-        <H>How big</H>
-        <p className="mt-4 text-base leading-relaxed">
-          Kenya’s wholesale and retail trade is about 7.8% of GDP — roughly KSh 1.38 trillion. There
-          are millions of MSMEs; most are informal dukas that will not pay for software. That is not
-          the customer.
-        </p>
-        <p className="mt-4 text-base leading-relaxed">
-          The customer is the licensed or serious shop that already gets names: boutiques, salons,
-          electronics, pharmacies, furniture, hardware. Tens to low hundreds of thousands of
-          businesses. Year one is a few thousand shops in Nairobi, Mombasa, Kisumu, Nakuru, Eldoret
-          — if you pick one vertical and go deep.
-        </p>
-        <p className="mt-4 text-base leading-relaxed">
-          Tena starts as a Nairobi boutique (Kitenge House in the demo) because fashion already
-          sells on Instagram and WhatsApp, “I’ll think about it” is the default, and a recovered
-          sale pays for the tool the same week.
-        </p>
-
         <H>The loop</H>
         <ol className="mt-4 list-decimal space-y-2 pl-5 text-[15px] leading-relaxed">
           <li>Capture the person (walk-in or chat).</li>
@@ -96,11 +78,11 @@ function Playbook() {
         </ol>
         <p className="mt-4 text-base leading-relaxed">
           Consent is part of the product. Kenya’s Data Protection Act requires opt-in for marketing.
-          Tena treats follow-up on a conversation they started as service; broadcasts need a clear
-          yes and a way out.
+          Uzatena treats follow-up on a conversation they started as service; broadcasts need a
+          clear yes and a way out.
         </p>
 
-        <H>What Tena is not</H>
+        <H>What Uzatena is not</H>
         <ul className="mt-4 list-disc space-y-3 pl-5 text-base leading-relaxed">
           <li>Not ads, not a website, not HubSpot.</li>
           <li>Not a plastic loyalty card.</li>
@@ -110,9 +92,9 @@ function Playbook() {
 
         <H>How to use the demo</H>
         <p className="mt-4 text-base leading-relaxed">
-          Sign in. You get Kitenge House, a Ngong Road boutique, with real-feeling chats: Brian’s
-          linen shirt sitting 18 hours, Amina’s wrap on hold for Saturday, Faith two stamps from a
-          free wrap, Lucy angry about a late delivery.
+          Sign in. Your shop starts with two demo customers, marked “(demo)”: Brian’s linen-shirt
+          enquiry sitting unanswered, and Amina’s matching wrap on hold for Saturday. Remove them
+          from Today whenever you’re ready.
         </p>
         <p className="mt-4 text-base leading-relaxed">
           Work the Due list. Send. Capture a walk-in from a note. That is the product.
@@ -121,10 +103,10 @@ function Playbook() {
         <div className="mt-12 rounded-xl border border-border bg-card p-6">
           <p className="font-display text-xl font-semibold">Open the shop</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            The sample boutique is waiting. Send Brian his reply.
+            Two demo customers are waiting. Send Brian his reply.
           </p>
           <Button asChild className="mt-4">
-            <Link to="/login">Try Tena</Link>
+            <Link to="/login">Try Uzatena</Link>
           </Button>
         </div>
       </article>

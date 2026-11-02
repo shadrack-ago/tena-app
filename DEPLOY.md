@@ -1,6 +1,6 @@
-# Deploying Tena to Vercel
+# Deploying Uzatena to Vercel
 
-Tena builds with Nitro's `vercel` preset (`vite.config.ts`), so Vercel only
+Uzatena builds with Nitro's `vercel` preset (`vite.config.ts`), so Vercel only
 needs to run `npm run build` (see `vercel.json`). The build also applies any
 new `migrations/*.sql` to the database in `DATABASE_URL`.
 
@@ -28,7 +28,8 @@ Use `.env.example` as the checklist. Required for production:
 | `BETTER_AUTH_SECRET` | New random value: `openssl rand -hex 32`. Don't reuse your local one |
 | `BETTER_AUTH_URL` | Your public address, e.g. `https://tena-app.vercel.app` or `https://tena.co.ke` (no trailing slash) |
 | `TENA_ADMIN_EMAILS` | Owner admin emails, comma-separated |
-| `TENA_BILLING_MODE` | `manual` |
+| `TENA_BILLING_MODE` | `paystack` |
+| `PAYSTACK_SECRET_KEY`, `PAYSTACK_PUBLIC_KEY` | Your **live** Paystack keys (Production only) |
 | `TENA_MPESA_PAY_TO` | e.g. `Till 123456` |
 | `RESEND_API_KEY`, `EMAIL_FROM` | From resend.com (needed for password resets and admin invites) |
 
@@ -41,7 +42,12 @@ If the site answers on more than one address (e.g. `tena.co.ke` and
 Then **Deploy**. After the first deploy, if you change `BETTER_AUTH_URL` or add a
 custom domain, redeploy so sign-in uses the new address.
 
-## 4. After it's live
+## 4. Paystack webhook
+In Paystack → Settings → API Keys & Webhooks, set the **Live Webhook URL** to
+`https://uzatena.com/api/paystack/webhook`. Plans then activate even if an owner
+closes the browser before returning to Uzatena.
+
+## 5. After it's live
 1. Open `<your address>/login`, create the account for an email in
    `TENA_ADMIN_EMAILS`, then go to `/ops` → **Open Tena HQ**.
 2. Invite other admins from **Team**. They get an email (with Resend set up),

@@ -22,7 +22,7 @@ function Overview() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Overview" sub="How Tena is doing across every shop." />
+      <PageHeader title="Overview" sub="How Uzatena is doing across every shop." />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile

@@ -8,10 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { draftForFollowUp, sendFollowUp, skipFollowUp } from "@/lib/server/tena";
 import { formatPhone, initials, kindLabel, relativeDue, whatsappUrl } from "@/lib/utils";
 import type { FollowUp } from "@/lib/types";
+import { FollowUpDatePicker, dueAtInDays } from "@/components/follow-up-date";
 
 export function FollowUpCard({ item }: { item: FollowUp }) {
   const qc = useQueryClient();
   const [body, setBody] = useState(item.draftText ?? "");
+  const [rescheduling, setRescheduling] = useState(false);
+  const [newDueAt, setNewDueAt] = useState(() => dueAtInDays(1));
   const overdue = new Date(item.dueAt).getTime() < Date.now();
   const wa = whatsappUrl(item.customerPhone, body);
 
@@ -38,11 +41,13 @@ export function FollowUpCard({ item }: { item: FollowUp }) {
   });
 
   const skipMut = useMutation({
-    mutationFn: (hours?: number) => skipFollowUp({ data: { id: item.id, snoozeHours: hours } }),
-    onSuccess: () => {
-      toast.success("Updated");
+    mutationFn: (dueAt?: string) => skipFollowUp({ data: { id: item.id, dueAt } }),
+    onSuccess: (_r, dueAt) => {
+      toast.success(dueAt ? "Rescheduled" : "Skipped");
+      setRescheduling(false);
       void qc.invalidateQueries();
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   async function copyDraft() {
@@ -125,13 +130,31 @@ export function FollowUpCard({ item }: { item: FollowUp }) {
             </Link>
           </Button>
         )}
-        <Button size="sm" variant="ghost" onClick={() => skipMut.mutate(48)}>
-          Snooze 2 days
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-expanded={rescheduling}
+          onClick={() => setRescheduling((v) => !v)}
+        >
+          Reschedule
         </Button>
         <Button size="sm" variant="ghost" onClick={() => skipMut.mutate(undefined)}>
           Skip
         </Button>
       </div>
+      {rescheduling && (
+        <div className="mt-3 grid gap-3 rounded-lg border border-border bg-background p-3">
+          <FollowUpDatePicker label="Move this follow-up to" value={newDueAt} onChange={setNewDueAt} />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => skipMut.mutate(newDueAt)} disabled={skipMut.isPending}>
+              {skipMut.isPending ? "Saving…" : "Save date"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setRescheduling(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
     </article>
   );
 }

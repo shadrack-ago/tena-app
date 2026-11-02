@@ -16,7 +16,7 @@ const PRACTICES = [
   },
   {
     title: "Payday is a calendar, not a hope",
-    body: "When someone says Friday, put Friday on the list. Tena does that. You send the message that day.",
+    body: "When someone says Friday, put Friday on the list. Uzatena does that. You send the message that day.",
   },
   {
     title: "After they pay, you are not done",

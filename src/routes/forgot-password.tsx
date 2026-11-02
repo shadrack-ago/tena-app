@@ -48,7 +48,7 @@ function ForgotPassword() {
           </span>
           <h1 className="mt-4 font-display text-2xl font-semibold">Check your email</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            If <span className="font-medium text-foreground">{sentTo}</span> has a Tena shop, we’ve
+            If <span className="font-medium text-foreground">{sentTo}</span> has a Uzatena shop, we’ve
             sent a link to reset the password. It works for 1 hour. Check spam if it doesn’t arrive
             in a few minutes.
           </p>

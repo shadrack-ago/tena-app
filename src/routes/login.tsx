@@ -145,7 +145,7 @@ function Login() {
             : "Sign in with your email and password."
           : joining
             ? "Create your staff login. You’ll join the shop that invited you."
-            : "Email and a password. A Nairobi boutique is waiting inside."}
+            : "Email and a password. Two demo customers show you how it works."}
       </p>
 
       {authEnabled ? (

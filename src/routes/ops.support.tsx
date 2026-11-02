@@ -117,7 +117,7 @@ function Thread({ id, onBack }: { id: number; onBack: () => void }) {
             )}
           >
             <p className="text-xs text-muted-foreground">
-              {m.role === "ops" ? `Tena · ${m.name ?? ""}` : m.name || d.shopName} ·{" "}
+              {m.role === "ops" ? `Uzatena · ${m.name ?? ""}` : m.name || d.shopName} ·{" "}
               {fmtDateTime(m.createdAt)}
             </p>
             <p className="mt-1 whitespace-pre-wrap">{m.body}</p>

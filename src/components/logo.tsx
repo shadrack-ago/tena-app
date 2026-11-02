@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** Tena wordmark: teal tile + name. Wrap in a Link where it should navigate. */
+/** Uzatena wordmark: teal tile + name. Wrap in a Link where it should navigate. */
 export function Logo({ size = "md", className }: { size?: "sm" | "md"; className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
@@ -10,7 +10,7 @@ export function Logo({ size = "md", className }: { size?: "sm" | "md"; className
           size === "sm" ? "size-7 text-base" : "size-8 text-lg",
         )}
       >
-        T
+        U
       </span>
       <span
         className={cn(
@@ -18,7 +18,7 @@ export function Logo({ size = "md", className }: { size?: "sm" | "md"; className
           size === "sm" ? "text-lg" : "text-xl",
         )}
       >
-        Tena
+        Uzatena
       </span>
     </span>
   );

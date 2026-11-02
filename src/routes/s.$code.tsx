@@ -121,7 +121,7 @@ function JoinCounter() {
         </Button>
       </form>
       <p className="mt-8 text-center text-xs text-muted-foreground">
-        Powered by <Link to="/" className="underline">Tena</Link>
+        Powered by <Link to="/" className="underline">Uzatena</Link>
       </p>
     </main>
   );

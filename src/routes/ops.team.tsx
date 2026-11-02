@@ -65,7 +65,7 @@ function Team() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Team" sub="People who can open Tena HQ." />
+      <PageHeader title="Team" sub="People who can open Uzatena HQ." />
 
       {isOwner && (
         <Card
@@ -144,7 +144,7 @@ function Team() {
                     variant="outline"
                     disabled={removeMut.isPending}
                     onClick={() => {
-                      if (confirm(`Remove ${a.email} from Tena HQ?`)) removeMut.mutate(a.userId);
+                      if (confirm(`Remove ${a.email} from Uzatena HQ?`)) removeMut.mutate(a.userId);
                     }}
                   >
                     Remove
@@ -159,7 +159,7 @@ function Team() {
       {(q.data?.invites.length ?? 0) > 0 && (
         <Card
           title="Pending invites"
-          sub="Send them the link. They sign up with that email and land in Tena HQ."
+          sub="Send them the link. They sign up with that email and land in Uzatena HQ."
         >
           <ul className="divide-y divide-border text-sm">
             {q.data!.invites.map((i) => (

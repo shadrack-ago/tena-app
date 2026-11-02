@@ -170,8 +170,8 @@ function Hero() {
             .
           </h1>
           <p className="mt-7 max-w-lg text-lg leading-relaxed text-muted-foreground">
-            Tena records every walk-in and online enquiry, reminds you who to follow up, drafts the
-            WhatsApp message with AI, and rewards the customers who come back.
+            Uzatena records every walk-in and online enquiry, reminds you who to follow up, drafts
+            the WhatsApp message with AI, and rewards the customers who come back.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
             <PrimaryCta>Start your 14-day free trial</PrimaryCta>
@@ -391,7 +391,7 @@ const STEPS = [
   },
   {
     icon: BellRing,
-    title: "Tena schedules the follow-up",
+    title: "Uzatena schedules the follow-up",
     body: "“Payday Friday” becomes a reminder on Friday. Every lead lands on your Today list at the right time.",
   },
   {
@@ -714,7 +714,7 @@ function Pricing() {
 const FAQS = [
   {
     q: "Do I need the WhatsApp Business API?",
-    a: "No. Tena opens your normal WhatsApp or WhatsApp Business with the message ready. You press send, so it always comes from your own number.",
+    a: "No. Uzatena opens your normal WhatsApp or WhatsApp Business with the message ready. You press send, so it always comes from your own number.",
   },
   {
     q: "Can my staff use it?",
@@ -784,8 +784,7 @@ function FinalCta() {
             Your next sale is already in your WhatsApp.
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-lg text-primary-foreground/75">
-            Start with a sample shop pre-loaded, so you can send your first follow-up in two
-            minutes.
+            Start with two demo customers, so you can send your first follow-up in two minutes.
           </p>
           <div className="mt-9 flex justify-center">
             <PrimaryCta className="bg-card text-primary shadow-none hover:bg-card/90">

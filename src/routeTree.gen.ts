@@ -30,6 +30,7 @@ import { Route as OpsSupportRouteImport } from './routes/ops.support'
 import { Route as OpsTeamRouteImport } from './routes/ops.team'
 import { Route as SCodeRouteImport } from './routes/s.$code'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiPaystackWebhookRouteImport } from './routes/api/paystack/webhook'
 import { Route as AppInboxIndexRouteImport } from './routes/app/inbox.index'
 import { Route as AppInboxIdRouteImport } from './routes/app/inbox.$id'
 import { Route as AppPeopleIndexRouteImport } from './routes/app/people.index'
@@ -142,6 +143,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPaystackWebhookRoute = ApiPaystackWebhookRouteImport.update({
+  id: '/api/paystack/webhook',
+  path: '/api/paystack/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppInboxIndexRoute = AppInboxIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -195,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AppIndexRoute
   '/ops/': typeof OpsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
   '/app/inbox/$id': typeof AppInboxIdRoute
   '/app/people/$id': typeof AppPeopleIdRoute
   '/ops/shops/$id': typeof OpsShopsIdRoute
@@ -220,6 +227,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppIndexRoute
   '/ops': typeof OpsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
   '/app/inbox/$id': typeof AppInboxIdRoute
   '/app/people/$id': typeof AppPeopleIdRoute
   '/ops/shops/$id': typeof OpsShopsIdRoute
@@ -250,6 +258,7 @@ export interface FileRoutesById {
   '/app/': typeof AppIndexRoute
   '/ops/': typeof OpsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
   '/app/inbox/$id': typeof AppInboxIdRoute
   '/app/people/$id': typeof AppPeopleIdRoute
   '/ops/shops/$id': typeof OpsShopsIdRoute
@@ -281,6 +290,7 @@ export interface FileRouteTypes {
     | '/app/'
     | '/ops/'
     | '/api/auth/$'
+    | '/api/paystack/webhook'
     | '/app/inbox/$id'
     | '/app/people/$id'
     | '/ops/shops/$id'
@@ -306,6 +316,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/ops'
     | '/api/auth/$'
+    | '/api/paystack/webhook'
     | '/app/inbox/$id'
     | '/app/people/$id'
     | '/ops/shops/$id'
@@ -335,6 +346,7 @@ export interface FileRouteTypes {
     | '/app/'
     | '/ops/'
     | '/api/auth/$'
+    | '/api/paystack/webhook'
     | '/app/inbox/$id'
     | '/app/people/$id'
     | '/ops/shops/$id'
@@ -353,6 +365,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SCodeRoute: typeof SCodeRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiPaystackWebhookRoute: typeof ApiPaystackWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -504,6 +517,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/paystack/webhook': {
+      id: '/api/paystack/webhook'
+      path: '/api/paystack/webhook'
+      fullPath: '/api/paystack/webhook'
+      preLoaderRoute: typeof ApiPaystackWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/inbox/': {
       id: '/app/inbox/'
       path: '/'
@@ -631,6 +651,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SCodeRoute: SCodeRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiPaystackWebhookRoute: ApiPaystackWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

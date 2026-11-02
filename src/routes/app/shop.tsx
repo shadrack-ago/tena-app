@@ -16,12 +16,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ShopQr } from "@/components/shop-qr";
 import { formatKes } from "@/lib/utils";
+import { startPaystackCheckout, verifyPaystackPayment } from "@/lib/server/billing";
 
 export const Route = createFileRoute("/app/shop")({ component: ShopDesk });
 
 function ShopDesk() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["shop-desk"], queryFn: () => getShopDesk() });
+  const paystackReturn = usePaystackReturn();
   const [origin, setOrigin] = useState("");
   const [plan, setPlan] = useState<PlanId>("monthly");
   const [mpesa, setMpesa] = useState("");
@@ -82,7 +84,7 @@ function ShopDesk() {
     mutationFn: (paymentId: number) => confirmMpesaPayment({ data: { paymentId } }),
     onSuccess: (res) => {
       toast.success(
-        res.activated ? "Shop is subscribed" : "Thanks. Tena will confirm your payment shortly.",
+        res.activated ? "Shop is subscribed" : "Thanks. Uzatena will confirm your payment shortly.",
       );
       void qc.invalidateQueries();
     },
@@ -108,6 +110,7 @@ function ShopDesk() {
   const suspended = d.access.suspended;
   const owner = d.role === "owner";
   const demo = d.billingMode === "demo";
+  const paystack = d.billingMode === "paystack";
 
   return (
     <div className="mx-auto max-w-2xl space-y-10 px-4 py-6 md:px-8">
@@ -119,11 +122,17 @@ function ShopDesk() {
         </p>
       </div>
 
+      {paystackReturn === "checking" && (
+        <p className="rounded-xl border border-border bg-accent px-4 py-3 text-sm text-accent-foreground">
+          Confirming your payment with Paystack…
+        </p>
+      )}
+
       {suspended ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <p className="font-semibold">This shop is suspended.</p>
           {d.access.suspendedReason && <p className="mt-1">{d.access.suspendedReason}</p>}
-          <p className="mt-1">Contact Tena support below to sort it out.</p>
+          <p className="mt-1">Contact Uzatena support below to sort it out.</p>
         </div>
       ) : (
         locked && (
@@ -236,7 +245,7 @@ function ShopDesk() {
       <section>
         <h2 className="font-display text-xl font-semibold">Plan</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          One bill for the shop, paid by M-Pesa. If it lapses, Tena locks until you pay.
+          One bill for the shop, paid by M-Pesa or card. If it lapses, Uzatena locks until you pay.
         </p>
         {suspended ? (
           <p className="mt-3 text-sm text-muted-foreground">
@@ -266,165 +275,176 @@ function ShopDesk() {
                 </button>
               ))}
             </div>
-            {demo && (
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPayMethod("mpesa")}
-                  className={`h-11 rounded-md border text-sm font-medium ${
-                    payMethod === "mpesa"
-                      ? "border-primary bg-accent text-accent-foreground"
-                      : "border-border bg-card"
-                  }`}
-                >
-                  M-Pesa
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPayMethod("card")}
-                  className={`h-11 rounded-md border text-sm font-medium ${
-                    payMethod === "card"
-                      ? "border-primary bg-accent text-accent-foreground"
-                      : "border-border bg-card"
-                  }`}
-                >
-                  Card
-                </button>
-              </div>
-            )}
-            {d.pendingPayment?.status === "submitted" ? (
-              <div className="rounded-xl border border-border bg-card p-4">
-                <p className="text-sm font-medium">Payment being confirmed</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Reference {d.pendingPayment.reference} · {formatKes(d.pendingPayment.amountKes)}.
-                  Tena checks M-Pesa and activates your plan, usually within a few hours.
-                </p>
-              </div>
-            ) : d.pendingPayment && !demo ? (
-              <div className="rounded-xl border border-border bg-card p-4">
-                <p className="text-sm font-medium">
-                  Send {formatKes(d.pendingPayment.amountKes)} by M-Pesa
-                </p>
-                <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
-                  <li>
-                    Pay to{" "}
-                    <span className="font-medium text-foreground">
-                      {d.mpesaPayTo ?? "the Tena M-Pesa number support gives you"}
-                    </span>
-                  </li>
-                  <li>
-                    Use account/reference{" "}
-                    <span className="font-mono font-medium text-foreground">
-                      {d.pendingPayment.reference}
-                    </span>
-                  </li>
-                  <li>Tap the button below once you get the M-Pesa SMS.</li>
-                </ol>
-                <Button
-                  className="mt-3"
-                  onClick={() => confirmMut.mutate(d.pendingPayment!.id)}
-                  disabled={confirmMut.isPending}
-                >
-                  {confirmMut.isPending ? "Sending…" : "I’ve paid"}
-                </Button>
-              </div>
-            ) : d.pendingPayment ? (
-              <div className="rounded-xl border border-border bg-card p-4">
-                <p className="text-sm font-medium">
-                  M-Pesa prompt sent{d.pendingPayment.phone ? ` to ${d.pendingPayment.phone}` : ""}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Reference {d.pendingPayment.reference} · {formatKes(d.pendingPayment.amountKes)}.
-                  Demo billing: confirming here activates the plan without real money.
-                </p>
-                <Button
-                  className="mt-3"
-                  onClick={() => confirmMut.mutate(d.pendingPayment!.id)}
-                  disabled={confirmMut.isPending}
-                >
-                  {confirmMut.isPending ? "Confirming…" : "I entered the PIN"}
-                </Button>
-              </div>
-            ) : payMethod === "mpesa" ? (
-              <>
-                <label className="grid gap-1 text-sm">
-                  <span className="font-medium">M-Pesa number that will pay</span>
-                  <Input
-                    value={mpesa}
-                    onChange={(e) => setMpesa(e.target.value)}
-                    placeholder="07xx xxx xxx"
-                    inputMode="tel"
-                  />
-                </label>
-                <Button
-                  className="w-full"
-                  onClick={() => payMut.mutate()}
-                  disabled={payMut.isPending || !mpesa.trim()}
-                >
-                  {payMut.isPending
-                    ? "Sending…"
-                    : demo
-                      ? `Pay ${formatKes(d.plans[plan].kes)} with M-Pesa`
-                      : `Continue to pay ${formatKes(d.plans[plan].kes)}`}
-                </Button>
-              </>
+            {paystack ? (
+              <PaystackPay plan={plan} amountKes={d.plans[plan].kes} />
             ) : (
-              <form
-                className="space-y-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const digits = cardNumber.replace(/\D/g, "");
-                  if (digits.length < 13) {
-                    toast.error("Enter the card number.");
-                    return;
-                  }
-                  if (!/^\d{2}\/\d{2}$/.test(cardExp.trim())) {
-                    toast.error("Expiry as MM/YY");
-                    return;
-                  }
-                  if (cardCvv.replace(/\D/g, "").length < 3) {
-                    toast.error("Enter the CVV.");
-                    return;
-                  }
-                  cardMut.mutate();
-                }}
-              >
-                <Input
-                  value={cardName}
-                  onChange={(e) => setCardName(e.target.value)}
-                  placeholder="Name on card"
-                  autoComplete="cc-name"
-                />
-                <Input
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value)}
-                  placeholder="Card number"
-                  inputMode="numeric"
-                  autoComplete="cc-number"
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    value={cardExp}
-                    onChange={(e) => setCardExp(e.target.value)}
-                    placeholder="MM/YY"
-                    autoComplete="cc-exp"
-                  />
-                  <Input
-                    value={cardCvv}
-                    onChange={(e) => setCardCvv(e.target.value)}
-                    placeholder="CVV"
-                    inputMode="numeric"
-                    autoComplete="cc-csc"
-                  />
-                </div>
-                <Button className="w-full" type="submit" disabled={cardMut.isPending}>
-                  {cardMut.isPending ? "Paying…" : `Pay ${formatKes(d.plans[plan].kes)} by card`}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Card details stay on this phone. Live shops will charge through Pesapal or Stripe
-                  — Tena never stores the full number.
-                </p>
-              </form>
+              <>
+                {demo && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPayMethod("mpesa")}
+                      className={`h-11 rounded-md border text-sm font-medium ${
+                        payMethod === "mpesa"
+                          ? "border-primary bg-accent text-accent-foreground"
+                          : "border-border bg-card"
+                      }`}
+                    >
+                      M-Pesa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPayMethod("card")}
+                      className={`h-11 rounded-md border text-sm font-medium ${
+                        payMethod === "card"
+                          ? "border-primary bg-accent text-accent-foreground"
+                          : "border-border bg-card"
+                      }`}
+                    >
+                      Card
+                    </button>
+                  </div>
+                )}
+                {d.pendingPayment?.status === "submitted" ? (
+                  <div className="rounded-xl border border-border bg-card p-4">
+                    <p className="text-sm font-medium">Payment being confirmed</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Reference {d.pendingPayment.reference} ·{" "}
+                      {formatKes(d.pendingPayment.amountKes)}. Uzatena checks M-Pesa and activates
+                      your plan, usually within a few hours.
+                    </p>
+                  </div>
+                ) : d.pendingPayment && !demo ? (
+                  <div className="rounded-xl border border-border bg-card p-4">
+                    <p className="text-sm font-medium">
+                      Send {formatKes(d.pendingPayment.amountKes)} by M-Pesa
+                    </p>
+                    <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+                      <li>
+                        Pay to{" "}
+                        <span className="font-medium text-foreground">
+                          {d.mpesaPayTo ?? "the Uzatena M-Pesa number support gives you"}
+                        </span>
+                      </li>
+                      <li>
+                        Use account/reference{" "}
+                        <span className="font-mono font-medium text-foreground">
+                          {d.pendingPayment.reference}
+                        </span>
+                      </li>
+                      <li>Tap the button below once you get the M-Pesa SMS.</li>
+                    </ol>
+                    <Button
+                      className="mt-3"
+                      onClick={() => confirmMut.mutate(d.pendingPayment!.id)}
+                      disabled={confirmMut.isPending}
+                    >
+                      {confirmMut.isPending ? "Sending…" : "I’ve paid"}
+                    </Button>
+                  </div>
+                ) : d.pendingPayment ? (
+                  <div className="rounded-xl border border-border bg-card p-4">
+                    <p className="text-sm font-medium">
+                      M-Pesa prompt sent
+                      {d.pendingPayment.phone ? ` to ${d.pendingPayment.phone}` : ""}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Reference {d.pendingPayment.reference} ·{" "}
+                      {formatKes(d.pendingPayment.amountKes)}. Demo billing: confirming here
+                      activates the plan without real money.
+                    </p>
+                    <Button
+                      className="mt-3"
+                      onClick={() => confirmMut.mutate(d.pendingPayment!.id)}
+                      disabled={confirmMut.isPending}
+                    >
+                      {confirmMut.isPending ? "Confirming…" : "I entered the PIN"}
+                    </Button>
+                  </div>
+                ) : payMethod === "mpesa" ? (
+                  <>
+                    <label className="grid gap-1 text-sm">
+                      <span className="font-medium">M-Pesa number that will pay</span>
+                      <Input
+                        value={mpesa}
+                        onChange={(e) => setMpesa(e.target.value)}
+                        placeholder="07xx xxx xxx"
+                        inputMode="tel"
+                      />
+                    </label>
+                    <Button
+                      className="w-full"
+                      onClick={() => payMut.mutate()}
+                      disabled={payMut.isPending || !mpesa.trim()}
+                    >
+                      {payMut.isPending
+                        ? "Sending…"
+                        : demo
+                          ? `Pay ${formatKes(d.plans[plan].kes)} with M-Pesa`
+                          : `Continue to pay ${formatKes(d.plans[plan].kes)}`}
+                    </Button>
+                  </>
+                ) : (
+                  <form
+                    className="space-y-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const digits = cardNumber.replace(/\D/g, "");
+                      if (digits.length < 13) {
+                        toast.error("Enter the card number.");
+                        return;
+                      }
+                      if (!/^\d{2}\/\d{2}$/.test(cardExp.trim())) {
+                        toast.error("Expiry as MM/YY");
+                        return;
+                      }
+                      if (cardCvv.replace(/\D/g, "").length < 3) {
+                        toast.error("Enter the CVV.");
+                        return;
+                      }
+                      cardMut.mutate();
+                    }}
+                  >
+                    <Input
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                      placeholder="Name on card"
+                      autoComplete="cc-name"
+                    />
+                    <Input
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(e.target.value)}
+                      placeholder="Card number"
+                      inputMode="numeric"
+                      autoComplete="cc-number"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        value={cardExp}
+                        onChange={(e) => setCardExp(e.target.value)}
+                        placeholder="MM/YY"
+                        autoComplete="cc-exp"
+                      />
+                      <Input
+                        value={cardCvv}
+                        onChange={(e) => setCardCvv(e.target.value)}
+                        placeholder="CVV"
+                        inputMode="numeric"
+                        autoComplete="cc-csc"
+                      />
+                    </div>
+                    <Button className="w-full" type="submit" disabled={cardMut.isPending}>
+                      {cardMut.isPending
+                        ? "Paying…"
+                        : `Pay ${formatKes(d.plans[plan].kes)} by card`}
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Card details stay on this phone. Live shops will charge through Pesapal or
+                      Stripe — Uzatena never stores the full number.
+                    </p>
+                  </form>
+                )}
+              </>
             )}
             {demo && (
               <button
@@ -448,7 +468,7 @@ function ShopDesk() {
       <section>
         <h2 className="font-display text-xl font-semibold">Support</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Message Tena. We see it on the operator dashboard and reply here.
+          Message Uzatena. We see it on the operator dashboard and reply here.
         </p>
         <Button className="mt-3" variant="outline" asChild>
           <Link to="/app/support">Contact support</Link>
@@ -456,4 +476,56 @@ function ShopDesk() {
       </section>
     </div>
   );
+}
+
+/** Paystack checkout: send the owner to Paystack, then confirm when they return. */
+function PaystackPay({ plan, amountKes }: { plan: PlanId; amountKes: number }) {
+  const mut = useMutation({
+    mutationFn: () => startPaystackCheckout({ data: { plan } }),
+    onSuccess: (r) => {
+      window.location.href = r.url;
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <div className="space-y-2">
+      <Button className="w-full" onClick={() => mut.mutate()} disabled={mut.isPending}>
+        {mut.isPending ? "Opening Paystack…" : `Pay ${formatKes(amountKes)}`}
+      </Button>
+      <p className="text-xs text-muted-foreground">
+        You’ll pay securely on Paystack with M-Pesa or card, then come straight back here. Your plan
+        starts as soon as the payment goes through.
+      </p>
+    </div>
+  );
+}
+
+/** When Paystack sends the owner back (?reference=…), confirm the payment once. */
+function usePaystackReturn() {
+  const qc = useQueryClient();
+  const [state, setState] = useState<"idle" | "checking" | "done">("idle");
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reference = params.get("reference") || params.get("trxref");
+    if (!reference) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    setState("checking");
+    void verifyPaystackPayment({ data: { reference } })
+      .then((r) => {
+        if (r.state === "paid") toast.success("Payment received. Your plan is active.");
+        else if (r.state === "failed")
+          toast.error("The payment didn’t go through. Please try again.");
+        else if (r.state === "abandoned")
+          toast("Payment wasn’t completed. You can try again whenever you’re ready.");
+        else if (r.state === "mismatch")
+          toast.error("We couldn’t match that payment. Uzatena support will check it.");
+        else toast("Payment still processing. It will show here once Paystack confirms it.");
+      })
+      .catch((e: Error) => toast.error(e.message))
+      .finally(() => {
+        setState("done");
+        void qc.invalidateQueries();
+      });
+  }, [qc]);
+  return state;
 }

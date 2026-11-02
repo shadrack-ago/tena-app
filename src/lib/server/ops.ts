@@ -4,7 +4,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { resolveShop } from "./shop";
 import { requireAdmin, userLabel } from "./admin";
 
-/** Support tickets: Tena HQ side (getOps…, replyOps…) and the shop side (…My…). */
+/** Support tickets: Uzatena HQ side (getOps…, replyOps…) and the shop side (…My…). */
 export const getOpsTickets = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {

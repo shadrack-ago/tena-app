@@ -9,12 +9,17 @@ import { PLANS, type PlanId } from "@/lib/plans";
 export { PLANS, type PlanId };
 
 /**
- * "manual" (default): shops pay by M-Pesa outside the app, tap "I've paid", and a
- * Tena admin confirms in /ops. "demo": the old self-confirming preview flow —
+ * "paystack": hosted Paystack checkout (M-Pesa or card); the plan activates on
+ * verified payment. "manual" (default): shops pay by M-Pesa outside the app, tap "I've paid", and a
+ * Uzatena admin confirms in /ops. "demo": the old self-confirming preview flow —
  * for local testing only, never for real shops.
  */
-export function billingMode(): "manual" | "demo" {
-  return process.env.TENA_BILLING_MODE?.trim() === "demo" ? "demo" : "manual";
+export function billingMode(): "paystack" | "manual" | "demo" {
+  const mode = process.env.TENA_BILLING_MODE?.trim();
+  if (mode === "demo") return "demo";
+  // Paystack only when its secret key is present; otherwise fall back to manual.
+  if (mode === "paystack" && process.env.PAYSTACK_SECRET_KEY?.trim()) return "paystack";
+  return "manual";
 }
 
 /** Where shops send M-Pesa money in manual mode, e.g. "Till 123456". */
@@ -198,7 +203,7 @@ export async function uidOf(sql: Sql, userId: string) {
   if (access.status === "locked") {
     throw new Error(
       access.suspended
-        ? "This shop is suspended. Contact Tena support."
+        ? "This shop is suspended. Contact Uzatena support."
         : "Your plan has ended. Open Shop to renew.",
     );
   }
@@ -438,7 +443,7 @@ export const startMpesaCheckout = createServerFn({ method: "POST" })
       select count(*)::int as n from payments where shop_id = ${shop.shopId} and status = 'submitted'
     `;
     if ((awaiting[0]?.n ?? 0) > 0) {
-      throw new Error("Tena is still confirming your last payment.");
+      throw new Error("Uzatena is still confirming your last payment.");
     }
     await sql`update payments set status = 'failed' where shop_id = ${shop.shopId} and status = 'pending'`;
     const rows = await sql<{ id: number }>`
@@ -476,7 +481,7 @@ export const confirmMpesaPayment = createServerFn({ method: "POST" })
       throw new Error("Payment not found.");
     }
     if (billingMode() === "manual") {
-      // The shop says it paid; a Tena admin checks M-Pesa and confirms in /ops.
+      // The shop says it paid; a Uzatena admin checks M-Pesa and confirms in /ops.
       await sql`update payments set status = 'submitted' where id = ${pay[0].id}`;
       return { ok: true as const, activated: false as const, periodEnd: null };
     }

@@ -1,4 +1,4 @@
-/** Tena subscription plans (shared by the shop billing page and Tena HQ). */
+/** Uzatena subscription plans (shared by the shop billing page and Uzatena HQ). */
 export const PLANS = {
   monthly: { id: "monthly" as const, label: "1 month", kes: 999, months: 1 },
   quarter: { id: "quarter" as const, label: "3 months", kes: 2699, months: 3 },

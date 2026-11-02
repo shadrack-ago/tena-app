@@ -26,7 +26,7 @@ function Loyalty() {
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
           <li>Every logged sale adds one stamp.</li>
           <li>At {goal} stamps they get {shop.rewardLabel.toLowerCase()} and the card resets.</li>
-          <li>Tena tells you who is two visits away — you send the message.</li>
+          <li>Uzatena tells you who is two visits away — you send the message.</li>
         </ol>
       </div>
 

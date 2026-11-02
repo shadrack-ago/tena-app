@@ -37,7 +37,7 @@ function Support() {
       setSubject("");
       setBody("");
       setOpenId(res.ticketId);
-      toast.success("Sent to Tena");
+      toast.success("Sent to Uzatena");
       void qc.invalidateQueries({ queryKey: ["my-tickets"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -62,7 +62,7 @@ function Support() {
       </Link>
       <h1 className="mt-2 font-display text-3xl font-semibold">Support</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Write to Tena. Replies show up here — we see the same thread on the operator dashboard.
+        Write to Uzatena. Replies show up here — we see the same thread on the operator dashboard.
       </p>
 
       {openId && ticket.data ? (
@@ -89,7 +89,7 @@ function Support() {
                 }`}
               >
                 <p className="text-xs text-muted-foreground">
-                  {m.role === "ops" ? "Tena" : m.name || "You"} ·{" "}
+                  {m.role === "ops" ? "Uzatena" : m.name || "You"} ·{" "}
                   {format(new Date(m.createdAt), "d MMM HH:mm")}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap">{m.body}</p>
@@ -134,7 +134,7 @@ function Support() {
               placeholder="What do you need?"
             />
             <Button type="submit" disabled={createMut.isPending}>
-              {createMut.isPending ? "Sending…" : "Send to Tena"}
+              {createMut.isPending ? "Sending…" : "Send to Uzatena"}
             </Button>
           </form>
           <ul className="mt-6 space-y-2">

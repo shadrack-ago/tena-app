@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { uidOf } from "./shop";
+import { DEMO_PHONES } from "./seed";
 import { dueHoursFor } from "@/lib/utils";
 import { draftFollowUpMessage, parseCaptureNote, writeCoachBrief } from "./ai";
 import type { Conversation, Customer, Dashboard, FollowUp, Message, Sale, Shop } from "@/lib/types";
@@ -46,6 +47,13 @@ export const bootstrapShop = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/** End of today in Kenya time: Today lists follow-ups due before this. */
+function endOfTodayNairobi(): string {
+  const nairobi = new Date(Date.now() + 3 * 3600_000); // UTC+3, no daylight saving
+  nairobi.setUTCHours(24, 0, 0, 0);
+  return new Date(nairobi.getTime() - 3 * 3600_000).toISOString();
+}
+
 export const getDashboard = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }): Promise<Dashboard> => {
@@ -69,14 +77,24 @@ export const getDashboard = createServerFn({ method: "GET" })
     }>`select * from shops where user_id = ${uid} limit 1`;
     const shop = mapShop(shops[0]);
 
+    const endOfToday = endOfTodayNairobi();
     const dueFollowUps = await sql<FollowUpRow>`
       select f.id, f.customer_id, c.name as customer_name, c.phone as customer_phone,
              f.conversation_id, f.kind, f.due_at, f.status, f.draft_text, f.reason
       from follow_ups f
       join customers c on c.id = f.customer_id
-      where f.user_id = ${uid} and f.status = 'due'
+      where f.user_id = ${uid} and f.status = 'due' and f.due_at < ${endOfToday}
       order by f.due_at asc
       limit 20
+    `;
+    const upcoming = await sql<FollowUpRow>`
+      select f.id, f.customer_id, c.name as customer_name, c.phone as customer_phone,
+             f.conversation_id, f.kind, f.due_at, f.status, f.draft_text, f.reason
+      from follow_ups f
+      join customers c on c.id = f.customer_id
+      where f.user_id = ${uid} and f.status = 'due' and f.due_at >= ${endOfToday}
+      order by f.due_at asc
+      limit 15
     `;
 
     const loyaltyReady = await sql<CustRow>`
@@ -98,7 +116,7 @@ export const getDashboard = createServerFn({ method: "GET" })
     `;
     const dueToday = await sql<{ n: number }>`
       select count(*)::int as n from follow_ups
-      where user_id = ${uid} and status = 'due' and due_at <= now() + interval '18 hours'
+      where user_id = ${uid} and status = 'due' and due_at < ${endOfToday}
     `;
     const openEnquiries = await sql<{ n: number }>`
       select count(*)::int as n from follow_ups
@@ -110,9 +128,16 @@ export const getDashboard = createServerFn({ method: "GET" })
       where user_id = ${uid} and sold_at >= now() - interval '7 days'
     `;
 
+    const demo = await sql<{ n: number }>`
+      select count(*)::int as n from customers
+      where user_id = ${uid} and phone = any(${DEMO_PHONES})
+    `;
+
     return {
       shop,
+      demoCount: demo[0]?.n ?? 0,
       dueFollowUps: dueFollowUps.map(mapFollowUp),
+      upcoming: upcoming.map(mapFollowUp),
       loyaltyReady: loyaltyReady.map(mapCustomer),
       stats: {
         people: people[0]?.n ?? 0,
@@ -122,6 +147,20 @@ export const getDashboard = createServerFn({ method: "GET" })
         salesThisWeekCount: weekSales[0]?.n ?? 0,
       },
     };
+  });
+
+/** Delete the sample customers (and their chats, sales and follow-ups). */
+export const clearDemoData = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    const uid = await uidOf(sql, context.userId);
+    const removed = await sql<{ id: number }>`
+      delete from customers
+      where user_id = ${uid} and phone = any(${DEMO_PHONES})
+      returning id
+    `;
+    return { removed: removed.length };
   });
 
 type FollowUpRow = {
@@ -471,14 +510,26 @@ export const draftForFollowUp = createServerFn({ method: "POST" })
     return drafted;
   });
 
+/** A follow-up time picked in the app: from a day ago up to a year ahead, else null. */
+function validDueAt(value: string | undefined): string | null {
+  if (!value) return null;
+  const t = new Date(value).getTime();
+  if (Number.isNaN(t)) return null;
+  if (t < Date.now() - 24 * 3600_000 || t > Date.now() + 366 * 24 * 3600_000) return null;
+  return new Date(t).toISOString();
+}
+
 export const skipFollowUp = createServerFn({ method: "POST" })
-  .validator((input: { id: number; snoozeHours?: number }) => input)
+  .validator((input: { id: number; snoozeHours?: number; dueAt?: string }) => input)
   .middleware([authMiddleware])
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     const uid = await uidOf(sql, context.userId);
-    if (data.snoozeHours) {
-      const due = new Date(Date.now() + data.snoozeHours * 3600_000).toISOString();
+    const rescheduled =
+      validDueAt(data.dueAt) ??
+      (data.snoozeHours ? new Date(Date.now() + data.snoozeHours * 3600_000).toISOString() : null);
+    if (rescheduled) {
+      const due = rescheduled;
       await sql`
         update follow_ups set due_at = ${due}, status = 'due'
         where id = ${data.id} and user_id = ${uid}
@@ -569,6 +620,8 @@ export const saveCapturedCustomer = createServerFn({ method: "POST" })
       followUpReason: string;
       draft: string;
       dueHours: number;
+      /** Chosen follow-up time (ISO). Falls back to the kind's default timing. */
+      dueAt?: string;
     }) => input,
   )
   .middleware([authMiddleware])
@@ -603,8 +656,9 @@ export const saveCapturedCustomer = createServerFn({ method: "POST" })
       values (${uid}, ${customerId}, ${"whatsapp"}, ${"open"}, ${now})
       returning id
     `;
-    const hours = dueHoursFor(data.followUpKind, data.bought);
-    const due = new Date(Date.now() + hours * 3600_000).toISOString();
+    const due =
+      validDueAt(data.dueAt) ??
+      new Date(Date.now() + dueHoursFor(data.followUpKind, data.bought) * 3600_000).toISOString();
     await sql`
       insert into follow_ups (
         user_id, customer_id, conversation_id, kind, due_at, status, draft_text, reason

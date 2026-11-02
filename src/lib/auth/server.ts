@@ -1,5 +1,5 @@
 /**
- * Self-hosted Better Auth for Tena (server-only).
+ * Self-hosted Better Auth for Uzatena (server-only).
  *
  * Sessions, users and accounts live in the same Postgres as app data — Supabase
  * when `DATABASE_URL` is set, otherwise the embedded PGLite (wiped on restart).

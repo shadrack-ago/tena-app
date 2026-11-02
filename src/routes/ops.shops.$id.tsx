@@ -45,6 +45,7 @@ const PAYMENT_STATUS: Record<
 const METHOD: Record<string, string> = {
   mpesa: "M-Pesa (in app)",
   "mpesa-manual": "M-Pesa (recorded)",
+  paystack: "Paystack",
   card: "Card (demo)",
   grant: "Free grant",
 };
@@ -207,7 +208,7 @@ function ShopDetail() {
           </>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Only Tena owner admins can change plans or access.
+            Only Uzatena owner admins can change plans or access.
           </p>
         )}
       </Card>
@@ -296,7 +297,7 @@ function ShopDetail() {
         </div>
       </div>
 
-      <Card title="Admin history" sub="Every change Tena HQ made to this business.">
+      <Card title="Admin history" sub="Every change Uzatena HQ made to this business.">
         {s.history.length === 0 ? (
           <p className="text-sm text-muted-foreground">No changes yet.</p>
         ) : (
@@ -437,7 +438,7 @@ function RecordPaymentForm({ shopId, onDone, onError }: FormProps) {
   return (
     <FormBox onSubmit={() => mut.mutate()}>
       <p className="text-sm text-muted-foreground">
-        For money that reached Tena outside the app. The plan time is added to anything left.
+        For money that reached Uzatena outside the app. The plan time is added to anything left.
       </p>
       <Choice
         label="Plan"

@@ -41,7 +41,7 @@ function Shops() {
     <div className="space-y-6">
       <PageHeader
         title="Businesses"
-        sub="Every shop on Tena. Open one to manage its plan or access."
+        sub="Every shop on Uzatena. Open one to manage its plan or access."
       />
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
