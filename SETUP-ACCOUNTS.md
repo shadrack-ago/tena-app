@@ -14,7 +14,7 @@ Put each value in Vercel → Settings → Environment Variables (and in `.env` f
 |---|---|---|---|---|
 | 1 | **Domain** (e.g. `uzatena.com`) | Any .co.ke registrar (Truehost, HostPinnacle…) or Namecheap | Your web address, plus a domain to send email from | Professional URL; Resend needs it |
 | 2 | **Resend** | resend.com | `RESEND_API_KEY`, `EMAIL_FROM` (e.g. `Uzatena <no-reply@uzatena.com>`) | Password resets, admin invites. Verify your domain in Resend first |
-| 3 | **Anthropic (Claude)** | console.anthropic.com | `ANTHROPIC_API_KEY` | AI follow-up drafts, coach. ⚠️ The app still calls xAI (`XAI_API_KEY`) until the switch to Claude is done; until then it uses built-in templates |
+| 3 | **Anthropic (Claude)** | console.anthropic.com | `ANTHROPIC_API_KEY` | AI follow-up drafts, reading capture notes, morning coach (Claude Opus 5.5). Needs credit on the account (Plans & Billing). Without it the app uses built-in templates |
 | 4 | **Paystack** ✅ | paystack.com | `PAYSTACK_SECRET_KEY`, `PAYSTACK_PUBLIC_KEY`; set `TENA_BILLING_MODE=paystack` | Shops paying for Uzatena by M-Pesa or card |
 | 5 | **Google Cloud** *(optional)* | console.cloud.google.com → APIs & Services → Credentials → OAuth client | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, then set `VITE_GOOGLE_AUTH_ENABLED=true` | "Continue with Google". Redirect URI: `<your URL>/api/auth/callback/google` |
 | 6 | **M-Pesa Till/Paybill** *(optional)* | Safaricom | `TENA_MPESA_PAY_TO` | Only if you switch back to manual billing |

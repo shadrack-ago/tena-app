@@ -1,4 +1,59 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
+import { z } from "zod";
 import { extractKenyanPhone, wantedFromNote } from "@/lib/utils";
+
+/**
+ * Claude powers drafts, capture-note reading and the coach (server-only).
+ * Without ANTHROPIC_API_KEY every feature falls back to built-in templates.
+ * Short, everyday tasks, so effort is "low"; refusals fall back server-side.
+ */
+const MODEL = "claude-opus-5-5";
+const FALLBACK_BETA = "server-side-fallback-2026-07-01";
+
+let client: Anthropic | null = null;
+function claude(): Anthropic | null {
+  if (!process.env.ANTHROPIC_API_KEY?.trim()) return null;
+  client ??= new Anthropic();
+  return client;
+}
+
+function logAiError(feature: string, err: unknown) {
+  if (err instanceof Anthropic.AuthenticationError) {
+    console.error(`[ai] ${feature}: ANTHROPIC_API_KEY was rejected`);
+  } else if (err instanceof Anthropic.RateLimitError) {
+    console.error(`[ai] ${feature}: rate limited, using template`);
+  } else if (err instanceof Anthropic.APIError) {
+    console.error(`[ai] ${feature}: API error ${err.status}: ${err.message}`);
+  } else {
+    console.error(`[ai] ${feature}:`, err);
+  }
+}
+
+/** One short text answer from Claude, or null (no key, refusal, error). */
+async function askClaude(feature: string, prompt: string): Promise<string | null> {
+  const c = claude();
+  if (!c) return null;
+  try {
+    const response = await c.beta.messages.create({
+      model: MODEL,
+      max_tokens: 16000,
+      betas: [FALLBACK_BETA],
+      fallbacks: "default",
+      output_config: { effort: "low" },
+      messages: [{ role: "user", content: prompt }],
+    });
+    if (response.stop_reason === "refusal") return null;
+    const text = response.content
+      .map((b) => (b.type === "text" ? b.text : ""))
+      .join("")
+      .trim();
+    return text || null;
+  } catch (err) {
+    logAiError(feature, err);
+    return null;
+  }
+}
 
 type DraftInput = {
   shopName: string;
@@ -38,9 +93,6 @@ export async function draftFollowUpMessage(input: DraftInput): Promise<{
   text: string;
   source: "ai" | "template";
 }> {
-  const apiKey = process.env.XAI_API_KEY;
-  if (!apiKey) return { text: fallbackDraft(input), source: "template" };
-
   const lang =
     input.language === "sw"
       ? "Write in simple Kiswahili, warm and direct."
@@ -71,30 +123,9 @@ Rules:
 - End with a clear, easy next step (hold, pass by, M-Pesa, photo).
 - Return ONLY the message text.`;
 
-  try {
-    const res = await fetch("https://api.x.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "grok-4.5",
-        max_tokens: 180,
-        temperature: 0.6,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-    if (!res.ok) return { text: fallbackDraft(input), source: "template" };
-    const body = (await res.json()) as {
-      choices: { message: { content: string } }[];
-    };
-    const text = body.choices[0]?.message.content?.trim();
-    if (!text) return { text: fallbackDraft(input), source: "template" };
-    return { text: text.replace(/^["']|["']$/g, ""), source: "ai" };
-  } catch {
-    return { text: fallbackDraft(input), source: "template" };
-  }
+  const text = await askClaude("draft", prompt);
+  if (!text) return { text: fallbackDraft(input), source: "template" };
+  return { text: text.replace(/^["']|["']$/g, ""), source: "ai" };
 }
 
 export async function parseCaptureNote(
@@ -112,49 +143,34 @@ export async function parseCaptureNote(
   followUpReason: string;
   draft: string;
 } | null> {
-  const apiKey = process.env.XAI_API_KEY;
   const fallback = heuristicParse(note, shopName);
-  if (!apiKey) return fallback;
+  const c = claude();
+  if (!c) return fallback;
 
-  const prompt = `Extract a shop customer from this Kenyan shopkeeper note.
-Return STRICT JSON with keys:
-name (string), phone (string, Kenyan 07xxxxxxxx or 01xxxxxxxx / 011xxxxxxx),
-source (walk-in|whatsapp|instagram|facebook|tiktok|referral),
-notes (ONLY what they wanted — piece, size, colour. If the note is just a name and phone, notes MUST be "". Never copy the name or phone into notes.),
-bought (boolean): true ONLY if they actually paid, M-Pesa'd, or took the item home.
-  Looking, asking the price, "I'll think", hold it, payday, "maybe Saturday" = false.
-item (string or null): ONLY if bought is true AND a product was named, else null. Never put a name or phone here.
-amountKes (integer or null): ONLY money they actually paid. A price they asked about is NOT amountKes. May be null even if bought is true.
-followUpKind (enquiry|hold|payday|post_purchase|winback|loyalty|feedback),
-followUpReason (one sentence), draft (a short WhatsApp follow-up).
+  const prompt = `Extract the customer from this note a Kenyan shopkeeper typed after talking to someone.
 
-Note:
-"""${note.slice(0, 800)}"""
+Rules:
+- notes: ONLY what they wanted (piece, size, colour). If the note is just a name and phone, notes is "". Never copy the name or phone into notes.
+- bought: true ONLY if they actually paid, sent M-Pesa, or took the item home. Looking, asking the price, "I'll think", "hold it", payday, "maybe Saturday" all mean false.
+- item: ONLY if bought is true AND a product was named, otherwise null. Never put a name or phone here.
+- amountKes: ONLY money they actually paid. A price they asked about is not amountKes. May be null even when bought is true.
+- draft: one short, warm WhatsApp follow-up from the shop, in Kenyan English, no emojis, ending with an easy next step.
 
 Shop: ${shopName}
-No markdown. JSON only.`;
+Note:
+"""${note.slice(0, 800)}"""`;
 
   try {
-    const res = await fetch("https://api.x.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "grok-4.5",
-        max_tokens: 280,
-        temperature: 0.2,
-        messages: [{ role: "user", content: prompt }],
-      }),
+    const response = await c.beta.messages.parse({
+      model: MODEL,
+      max_tokens: 16000,
+      betas: [FALLBACK_BETA],
+      fallbacks: "default",
+      output_config: { effort: "low", format: betaZodOutputFormat(CaptureSchema) },
+      messages: [{ role: "user", content: prompt }],
     });
-    if (!res.ok) return fallback;
-    const body = (await res.json()) as {
-      choices: { message: { content: string } }[];
-    };
-    const raw = body.choices[0]?.message.content ?? "";
-    const json = raw.replace(/```json|```/g, "").trim();
-    const parsed = JSON.parse(json) as Record<string, unknown>;
+    if (response.stop_reason === "refusal" || !response.parsed_output) return fallback;
+    const parsed = response.parsed_output;
     if (typeof parsed.name !== "string" || !parsed.name.trim()) return fallback;
     const bought = parsed.bought === true;
     const name = String(parsed.name).trim();
@@ -180,10 +196,32 @@ No markdown. JSON only.`;
       followUpReason: String(parsed.followUpReason ?? "New capture"),
       draft: String(parsed.draft ?? fallback.draft),
     };
-  } catch {
+  } catch (err) {
+    logAiError("capture", err);
     return fallback;
   }
 }
+
+const CaptureSchema = z.object({
+  name: z.string().describe("Customer's name"),
+  phone: z.string().describe("Kenyan mobile, e.g. 0712345678 or 0112345678"),
+  source: z.enum(["walk-in", "whatsapp", "instagram", "facebook", "tiktok", "referral"]),
+  notes: z.string().describe("Only what they wanted; empty if nothing was said"),
+  bought: z.boolean(),
+  item: z.string().nullable(),
+  amountKes: z.number().int().nullable(),
+  followUpKind: z.enum([
+    "enquiry",
+    "hold",
+    "payday",
+    "post_purchase",
+    "winback",
+    "loyalty",
+    "feedback",
+  ]),
+  followUpReason: z.string().describe("One sentence: why to follow up"),
+  draft: z.string().describe("Short WhatsApp follow-up message"),
+});
 
 function heuristicParse(note: string, shopName: string) {
   const phone = extractKenyanPhone(note) ?? "";
@@ -245,9 +283,6 @@ export async function writeCoachBrief(input: {
       : "Capture the next walk-in before they leave.",
   ].join(" ");
 
-  const apiKey = process.env.XAI_API_KEY;
-  if (!apiKey) return fallback;
-
   const prompt = `Write a 4–6 sentence morning briefing for the owner of ${input.shopName}, a Kenyan retail shop.
 Tone: direct, kind, no fluff, no emojis, no corporate jargon.
 Facts:
@@ -257,26 +292,5 @@ Facts:
 
 Tell them what to do in the next 20 minutes. Return plain paragraphs only.`;
 
-  try {
-    const res = await fetch("https://api.x.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "grok-4.5",
-        max_tokens: 280,
-        temperature: 0.5,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-    if (!res.ok) return fallback;
-    const body = (await res.json()) as {
-      choices: { message: { content: string } }[];
-    };
-    return body.choices[0]?.message.content?.trim() || fallback;
-  } catch {
-    return fallback;
-  }
+  return (await askClaude("coach", prompt)) ?? fallback;
 }
