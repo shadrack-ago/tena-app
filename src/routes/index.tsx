@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
+import { SiteNav } from "@/components/site-nav";
 
 export const Route = createFileRoute("/")({ component: Home });
 
@@ -32,7 +33,7 @@ const SHOP_TYPES = [
 function Home() {
   return (
     <div className="min-h-dvh overflow-x-clip bg-background text-foreground">
-      <Nav />
+      <SiteNav current="home" />
       <Hero />
       <ShopTypes />
       <Problem />
@@ -88,48 +89,6 @@ function SectionTitle({ children, className }: { children: React.ReactNode; clas
     >
       {children}
     </h2>
-  );
-}
-
-/* ── Nav ─────────────────────────────────────────────────────────────────── */
-
-function Nav() {
-  return (
-    <header className="sticky top-0 z-30 border-b border-foreground/5 bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:px-8">
-        <Link to="/">
-          <Logo />
-        </Link>
-        <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
-          <a href="#how" className="hover:text-foreground">
-            How it works
-          </a>
-          <a href="#features" className="hover:text-foreground">
-            Features
-          </a>
-          <a href="#pricing" className="hover:text-foreground">
-            Pricing
-          </a>
-          <Link to="/playbook" className="hover:text-foreground">
-            Playbook
-          </Link>
-        </nav>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/login"
-            className="hidden h-10 items-center px-3 text-sm font-medium text-foreground/80 hover:text-foreground sm:inline-flex"
-          >
-            Sign in
-          </Link>
-          <Link
-            to="/login"
-            className="inline-flex h-10 items-center rounded-full bg-foreground px-4 text-sm font-semibold text-background transition hover:bg-foreground/85"
-          >
-            Start free
-          </Link>
-        </div>
-      </div>
-    </header>
   );
 }
 
